@@ -38,7 +38,7 @@ data "cloudinit_config" "k3s_server_userdata" {
       num_nodes                      = var.k3s_agent_count + var.k3s_server_count,
       ignore_prereqs                 = var.ignore_prereqs ? true : false,
       use_private_registry           = var.use_private_registry ? true : false,
-      private_registry               = locals.private_registry,
+      private_registry               = local.private_registry,
       private_registry_user          = var.private_registry_user,
       private_registry_user_password = var.private_registry_user_password,
       private_registry_skip_tls      = var.private_registry_skip_tls ? "true" : "false",

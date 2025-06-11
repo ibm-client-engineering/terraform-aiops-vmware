@@ -115,7 +115,7 @@ variable "private_registry_host" {
   description = "DNS or IP of private registry hosting the AIOps container images"
 
   validation {
-    condition     = !(var.use_private_registry && trim(var.private_registry_host) == "")
+    condition     = !(var.use_private_registry && trimspace(var.private_registry_host) == "")
     error_message = "private_registry_host must not be empty when use_private_registry is true."
   }
 }

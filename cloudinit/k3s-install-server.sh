@@ -165,6 +165,13 @@ else
     echo 'k3s did not install correctly'
     sleep 5
   done
+
+  # Wait for flannel.1 interface to appear
+  echo "Waiting for flannel.1 interface to be available..."
+  while ! ip link show flannel.1 &> /dev/null; do
+    sleep 1
+  done
+
   # Disable TX checksum offloading for the flannel.1 interface to prevent packet corruption issues
   # in some environments where the underlying network does not support checksum offloading properly.
   # This is especially relevant in virtualized or cloud environments using Flannel as the CNI.

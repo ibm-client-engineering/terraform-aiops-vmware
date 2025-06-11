@@ -69,7 +69,15 @@ export HOME=/root
 k3s_install_params=("--accept-license=${accept_license}")
 k3s_install_params+=("--role=control-plane")
 k3s_install_params+=("--token=${k3s_token}")
+%{ if use_private_registry }
+k3s_install_params+=("--registry=${private_registry}")
+k3s_install_params+=("--registry-user=${private_registry_user}")
+k3s_install_params+=("--registry-token=${private_registry_user_password}")
+k3s_install_params+=("--insecure-skip-tls-verify=${private_registry_skip_tls}")
+k3s_install_params+=("--offline")
+%{ else }
 k3s_install_params+=("--registry-token=${ibm_entitlement_key}")
+%{ endif }
 k3s_install_params+=("--app-storage /var/lib/aiops/storage")
 k3s_install_params+=("--platform-storage /var/lib/aiops/platform")
 k3s_install_params+=("--image-storage /var/lib/aiops/storage")

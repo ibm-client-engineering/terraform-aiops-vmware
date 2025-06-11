@@ -102,3 +102,50 @@ variable "base_domain" {
   type    = string
   default = "gym.lan"
 }
+
+variable "use_private_registry" {
+  default     = false
+  type        = bool
+  description = "Use a private registry, something other than cp.icr.io"
+}
+
+variable "private_registry_host" {
+  default     = ""
+  type        = string
+  description = "DNS or IP of private registry hosting the AIOps container images"
+
+  validation {
+    condition     = !(var.use_private_registry && trim(var.private_registry_host) == "")
+    error_message = "private_registry_host must not be empty when use_private_registry is true."
+  }
+}
+
+variable "private_registry_repo" {
+  default     = ""
+  type        = string
+  description = "Repository name, to be appended to host:port when building registry URL (e.g. host:port/repo)"
+}
+
+variable "private_registry_port" {
+  default     = 5000
+  type        = number
+  description = "Port number for private registry"
+}
+
+variable "private_registry_user" {
+  default     = "registryuser"
+  type        = string
+  description = "Login user for private registry"
+}
+
+variable "private_registry_user_password" {
+  default     = "registryuserpassword"
+  type        = string
+  description = "Login user password for private registry"
+}
+
+variable "private_registry_skip_tls" {
+  default     = true
+  type        = bool
+  description = "Skip TLS verification for private registry"
+}

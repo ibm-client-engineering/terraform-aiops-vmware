@@ -55,7 +55,6 @@ chmod 750 /var/lib/rancher/k3s/agent/etc/
 # for crictl
 chown root:k3sadmin /var/lib/rancher/k3s/agent/etc/crictl.yaml
 chmod 640 /var/lib/rancher/k3s/agent/etc/crictl.yaml
-
 }
 
 # wait for subscription registration to complete
@@ -134,9 +133,9 @@ if [[ "$first_instance" == "$instance_id" ]]; then
     sleep 2
   done
 
-  disable_checksum_offload()
+  disable_checksum_offload
 
-  nonroot_config()
+  nonroot_config
 
   # wait for k3s startup
   until kubectl get pods -A | grep 'Running'; do
@@ -197,7 +196,7 @@ else
     sleep 5
   done
 
-  disable_checksum_offload()
+  disable_checksum_offload
 
-  nonroot_config()
+  nonroot_config
 fi

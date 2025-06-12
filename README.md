@@ -176,12 +176,11 @@ sudo dnf install -y git bind-utils
 ```
 
 #### 2. **Clone the repo**
-Now clone the repo:
+Now clone this repo:
 
 ```bash
 git clone <repo>
 ```
-
 
 ### Define Terraform variables
 

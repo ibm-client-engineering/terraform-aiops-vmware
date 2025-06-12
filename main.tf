@@ -35,6 +35,7 @@ locals {
 
   total_nodes = var.k3s_server_count + var.k3s_agent_count
 
+  # these are the minimums for base and extended deployment
   cpu_pool    = var.mode == "base" ? 136 : 162
   mem_pool_gb = var.mode == "base" ? 322 : 380
 

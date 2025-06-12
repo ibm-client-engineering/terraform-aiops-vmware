@@ -16,6 +16,43 @@ do
 done
 }
 
+disable_checksum_offload() {
+# Wait for flannel.1 interface to appear
+echo "Waiting for flannel.1 interface to be available..."
+while ! ip link show flannel.1 &> /dev/null; do
+  sleep 1
+done
+echo "flannel.1 interface detected. Disabling tx-checksum-ip-generic..."
+# Disable TX checksum offloading for the flannel.1 interface to prevent packet corruption issues
+# in some environments where the underlying network does not support checksum offloading properly.
+# This is especially relevant in virtualized or cloud environments using Flannel as the CNI.
+ethtool -K flannel.1 tx-checksum-ip-generic off
+}
+
+# use k3sadmin group to allow clouduser to run commands
+nonroot_config() {
+groupadd k3sadmin
+usermod -aG k3sadmin clouduser
+
+chown root:k3sadmin /usr/local/bin/k3s
+chmod 750 /usr/local/bin/k3s
+
+chown root:k3sadmin /etc/rancher/
+chmod 750 /etc/rancher/
+
+chown -R root:k3sadmin /etc/rancher/k3s/
+chmod 750 /etc/rancher/k3s/
+
+chmod 750 /etc/rancher/k3s/config.yaml
+
+# for crictl
+chown root:k3sadmin /var/lib/rancher/k3s/agent/etc/
+chmod 750 /var/lib/rancher/k3s/agent/etc/
+# for crictl
+chown root:k3sadmin /var/lib/rancher/k3s/agent/etc/crictl.yaml
+chmod 640 /var/lib/rancher/k3s/agent/etc/crictl.yaml
+}
+
 # wait for subscription registration to complete
 while ! subscription-manager status; do
     echo "Waiting for RHSM registration..."
@@ -77,15 +114,6 @@ until (aiopsctl cluster node up --server-url="https://${k3s_url}:6443" $INSTALL_
   sleep 2
 done
 
+disable_checksum_offload()
 
-# Wait for flannel.1 interface to appear
-echo "Waiting for flannel.1 interface to be available..."
-while ! ip link show flannel.1 &> /dev/null; do
-  sleep 1
-done
-
-echo "flannel.1 interface detected. Disabling tx-checksum-ip-generic..."
-# Disable TX checksum offloading for the flannel.1 interface to prevent packet corruption issues
-# in some environments where the underlying network does not support checksum offloading properly.
-# This is especially relevant in virtualized or cloud environments using Flannel as the CNI.
-ethtool -K flannel.1 tx-checksum-ip-generic off
+nonroot_config()

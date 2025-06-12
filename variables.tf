@@ -78,7 +78,7 @@ variable "ibm_entitlement_key" {
   default = ""
 
   validation {
-    condition     = !var.use_private_registry && trimspace(var.ibm_entitlement_key) == ""
+    condition     = var.use_private_registry || trimspace(var.ibm_entitlement_key) != ""
     error_message = "ibm_entitlement_key must not be empty when use_private_registry is false."
   }
 }

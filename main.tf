@@ -32,4 +32,12 @@ resource "random_password" "k3s_token" {
 # build the private registry URL
 locals {
   private_registry = var.private_registry_repo != "" ? "${var.private_registry_host}:${var.private_registry_port}/${var.private_registry_repo}" : "${var.private_registry_host}:${var.private_registry_port}"
+
+  total_nodes = var.k3s_server_count + var.k3s_agent_count
+
+  cpu_pool = var.mode == "base" ? 136 : 162
+  mem_pool = var.mode == "base" ? 322 : 380
+
+  num_cpus = ceil(local.cpu_pool / local.total_nodes)
+  memory   = ceil(local.mem_pool / local.total_nodes)
 }

@@ -74,7 +74,13 @@ variable "accept_license" {
 }
 
 variable "ibm_entitlement_key" {
-  type = string
+  type    = string
+  default = ""
+
+  validation {
+    condition     = !var.use_private_registry && trimspace(var.ibm_entitlement_key) == ""
+    error_message = "ibm_entitlement_key must not be empty when use_private_registry is false."
+  }
 }
 
 variable "ignore_prereqs" {

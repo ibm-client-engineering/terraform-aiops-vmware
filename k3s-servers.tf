@@ -60,8 +60,8 @@ resource "vsphere_virtual_machine" "k3s_server" {
 
   folder = var.vsphere_folder
 
-  num_cpus  = 16
-  memory    = 65536
+  num_cpus  = local.num_cpus
+  memory    = local.memory
   guest_id  = data.vsphere_virtual_machine.template.guest_id
   scsi_type = data.vsphere_virtual_machine.template.scsi_type
 

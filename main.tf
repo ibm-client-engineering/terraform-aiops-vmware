@@ -28,3 +28,8 @@ resource "random_password" "k3s_token" {
   length  = 55
   special = false
 }
+
+# build the private registry URL
+locals {
+  private_registry = var.private_registry_repo != "" ? "${var.private_registry_host}:${var.private_registry_port}/${var.private_registry_repo}" : "${var.private_registry_host}:${var.private_registry_port}"
+}

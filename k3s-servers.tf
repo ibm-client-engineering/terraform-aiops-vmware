@@ -1,9 +1,3 @@
-# build the private registry URL
-locals {
-  private_registry = var.private_registry_repo != "" ? "${var.private_registry_host}:${var.private_registry_port}/${var.private_registry_repo}" : "${var.private_registry_host}:${var.private_registry_port}"
-}
-
-
 data "cloudinit_config" "k3s_server_userdata" {
   count = var.k3s_server_count
 

@@ -55,6 +55,12 @@ chmod 750 /var/lib/rancher/k3s/agent/etc/
 # for crictl
 chown root:k3sadmin /var/lib/rancher/k3s/agent/etc/crictl.yaml
 chmod 640 /var/lib/rancher/k3s/agent/etc/crictl.yaml
+
+%{ if !use_private_registry }
+mkdir -p /home/clouduser/.kube
+cp /etc/rancher/k3s/k3s.yaml /home/clouduser/.kube/config
+chown -R clouduser:clouduser /home/clouduser/.kube
+%{ endif }
 }
 
 # wait for subscription registration to complete

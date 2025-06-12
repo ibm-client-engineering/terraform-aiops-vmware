@@ -35,10 +35,10 @@ locals {
 
   total_nodes = var.k3s_server_count + var.k3s_agent_count
 
-  cpu_pool = var.mode == "base" ? 136 : 162
-  mem_pool = var.mode == "base" ? 322 : 380
+  cpu_pool    = var.mode == "base" ? 136 : 162
+  mem_pool_gb = var.mode == "base" ? 322 : 380
 
   # calculate cpus and memory needed per node
-  num_cpus = ceil(local.cpu_pool / local.total_nodes)
-  memory   = ceil(local.mem_pool / local.total_nodes) * 1024
+  num_cpus = max(16, ceil(local.cpu_pool / local.total_nodes))
+  memory   = max(20480, ceil(local.mem_pool_gb / local.total_nodes) * 1024)
 }

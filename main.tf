@@ -29,8 +29,8 @@ resource "random_password" "k3s_token" {
   special = false
 }
 
-# build the private registry URL
 locals {
+  # build the private registry URL
   private_registry = var.private_registry_repo != "" ? "${var.private_registry_host}:${var.private_registry_port}/${var.private_registry_repo}" : "${var.private_registry_host}:${var.private_registry_port}"
 
   total_nodes = var.k3s_server_count + var.k3s_agent_count
@@ -38,6 +38,7 @@ locals {
   cpu_pool = var.mode == "base" ? 136 : 162
   mem_pool = var.mode == "base" ? 322 : 380
 
+  # calculate cpus and memory needed per node
   num_cpus = ceil(local.cpu_pool / local.total_nodes)
-  memory   = ceil(local.mem_pool / local.total_nodes)
+  memory   = ceil(local.mem_pool / local.total_nodes) * 1024
 }

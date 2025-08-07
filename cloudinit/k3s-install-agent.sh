@@ -53,11 +53,69 @@ chown root:k3sadmin /var/lib/rancher/k3s/agent/etc/crictl.yaml
 chmod 640 /var/lib/rancher/k3s/agent/etc/crictl.yaml
 }
 
-# wait for subscription registration to complete
-while ! subscription-manager status; do
-    echo "Waiting for RHSM registration..."
-    sleep 10
+echo "Starting RHSM registration script (Simple Content Access enabled) at $(date)"
+
+RHSM_USERNAME="${rhsm_username}"
+RHSM_PASSWORD="${rhsm_password}"
+
+if [[ -z "$RHSM_USERNAME" || -z "$RHSM_PASSWORD" ]]; then
+    echo "ERROR: RHSM username or password not provided. Skipping registration."
+    exit 1
+fi
+
+echo "Attempting to register system with RHSM..."
+# With Simple Content Access, --auto-attach is generally sufficient after registration.
+subscription-manager register --username="$RHSM_USERNAME" --password="$RHSM_PASSWORD" --auto-attach || {
+    echo "ERROR: RHSM registration failed."
+    exit 1
+}
+echo "RHSM registration successful. Entitlements should be available via Simple Content Access."
+
+echo "Refreshing subscriptions and updating yum/dnf metadata..."
+subscription-manager refresh || echo "WARNING: Failed to refresh subscriptions."
+yum makecache || dnf makecache || echo "WARNING: Failed to refresh package cache."
+
+echo "RHSM registration script finished at $(date)"
+
+echo "Starting LVM disk setup at $(date)"
+
+# Install LVM2 utilities if not already present
+echo "Installing lvm2..."
+yum install -y lvm2 || dnf install -y lvm2 || { echo "ERROR: Failed to install lvm2."; exit 1; }
+echo "lvm2 installed."
+
+echo "Creating logical volumes..."
+processed_disks=""
+
+for disk in $(lsblk -o NAME,TYPE | grep disk | awk '{print $1}'); do
+  if ! lsblk /dev/$disk | grep -q part; then
+    echo "Processing /dev/$disk"
+    parted /dev/$disk --script mklabel gpt
+    parted /dev/$disk --script mkpart primary 0% 100%
+    pvcreate /dev/$${disk}1
+    processed_disks="$processed_disks /dev/$${disk}1"
+  fi
 done
+
+if [ -n "$processed_disks" ]; then
+  vgcreate vg_aiops $processed_disks
+else
+  echo "No disks were processed."
+fi
+
+lvcreate -L 119G -n lv_storage vg_aiops
+lvcreate -L 24G -n lv_rancher vg_aiops
+mkfs.xfs /dev/vg_aiops/lv_storage
+mkfs.xfs /dev/vg_aiops/lv_rancher
+mkdir -p /var/lib/aiops/storage
+mkdir -p /var/lib/rancher
+mount /dev/vg_aiops/lv_storage /var/lib/aiops/storage
+mount /dev/vg_aiops/lv_rancher /var/lib/rancher
+echo "/dev/vg_aiops/lv_storage /var/lib/aiops/storage xfs defaults,nofail 0 2" | tee -a /etc/fstab
+echo "/dev/vg_aiops/lv_rancher /var/lib/rancher xfs defaults,nofail 0 2" | tee -a /etc/fstab
+
+echo "All specified Logical Volumes created, formatted, mounted, and added to fstab."
+echo "LVM disk setup finished at $(date)"
 
 # k3s won't run with nm-cloud-setup enabled
 systemctl stop nm-cloud-setup.timer
@@ -65,14 +123,20 @@ systemctl disable nm-cloud-setup.timer
 systemctl stop nm-cloud-setup.service
 systemctl disable nm-cloud-setup.service
 
+%{ if mode == "extended" }
 # allow SELinux users to execute files that have been modified, this
 # is needed for extended installation, if this is not set then the
 # aimanager-aio-cr-api pods will CrashLoop due to selinux
 setsebool -P selinuxuser_execmod 1
+%{ endif }
 
 curl -LO "https://github.com/IBM/aiopsctl/releases/download/v${aiops_version}/aiopsctl-linux_amd64.tar.gz"
 tar xf "aiopsctl-linux_amd64.tar.gz"
 mv aiopsctl /usr/local/bin/aiopsctl
+
+#echo "Disabling selinux"
+#sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
+#setenforce 0
 
 echo "Opening firewall ports"
 firewall-cmd --permanent --add-port=8472/udp # Flannel VXLAN
@@ -83,6 +147,8 @@ firewall-cmd --permanent --add-port=5001/tcp # Distributed registry
 firewall-cmd --permanent --zone=trusted --add-source=10.42.0.0/16 # pods
 firewall-cmd --permanent --zone=trusted --add-source=10.43.0.0/16 # services
 firewall-cmd --reload
+#systemctl stop firewalld
+#systemctl disable firewalld
 
 # this is not being set automatically
 export HOME=/root
@@ -109,11 +175,18 @@ INSTALL_PARAMS="$${k3s_install_params[*]}"
 
 wait_lb
 
-until (aiopsctl cluster node up --server-url="https://${k3s_url}:6443" $INSTALL_PARAMS); do
-  echo 'k3s did not install correctly'
-  sleep 2
-done
+aiopsctl cluster node up --server-url="https://${k3s_url}:6443" $INSTALL_PARAMS
 
-disable_checksum_offloa
+# Check if SELinux is enforcing
+if [ "$(getenforce)" == "Enforcing" ]; then
+  echo "SELinux is in Enforcing mode."
+
+  # Restore the context on the file after it's installed
+  restorecon -v "/usr/local/bin/k3s"
+else
+  echo "SELinux is not in Enforcing mode. No action needed."
+fi
+
+disable_checksum_offload
 
 nonroot_config

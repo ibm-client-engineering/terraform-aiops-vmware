@@ -1,3 +1,11 @@
+variable "rhsm_username" {
+  type = string
+}
+
+variable "rhsm_password" {
+  type = string
+}
+
 variable "vsphere_server" {
   type = string
 }

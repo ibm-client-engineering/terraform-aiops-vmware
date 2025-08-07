@@ -153,15 +153,6 @@ mv aiopsctl /usr/local/bin/aiopsctl
 #sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
 #setenforce 0
 
-# Check if SELinux is enforcing
-if [ "$(getenforce)" == "Enforcing" ]; then
-  echo "SELinux is in Enforcing mode."
-  # Add the SELinux file context for the k3s binary
-  #semanage fcontext -a -t bin_t "/usr/local/bin/k3s"
-else
-  echo "SELinux is not in Enforcing mode. No action needed."
-fi
-
 echo "Opening firewall ports"
 firewall-cmd --permanent --add-port=80/tcp # Application HTTP port
 firewall-cmd --permanent --add-port=443/tcp # Application HTTPS port
@@ -215,12 +206,9 @@ if [[ "$first_instance" == "$instance_id" ]]; then
 
   # Check if SELinux is enforcing
   if [ "$(getenforce)" == "Enforcing" ]; then
-    echo "SELinux is in Enforcing mode."
-
-    #echo "selinux: true" >> /etc/rancher/k3s/config.yaml
+    echo "SELinux is in Enforcing mode. Restoring context to k3s so it can start."
     # Restore the context on the file after it's installed
     restorecon -v "/usr/local/bin/k3s"
-    
   else
     echo "SELinux is not in Enforcing mode. No action needed."
   fi
@@ -287,9 +275,7 @@ else
 
   # Check if SELinux is enforcing
   if [ "$(getenforce)" == "Enforcing" ]; then
-    echo "SELinux is in Enforcing mode."
-
-    #echo "selinux: true" >> /etc/rancher/k3s/config.yaml
+    echo "SELinux is in Enforcing mode. Restoring context to k3s so it can start."
     # Restore the context on the file after it's installed
     restorecon -v "/usr/local/bin/k3s"
   else

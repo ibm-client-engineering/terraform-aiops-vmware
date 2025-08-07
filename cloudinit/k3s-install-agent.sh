@@ -179,8 +179,7 @@ aiopsctl cluster node up --server-url="https://${k3s_url}:6443" $INSTALL_PARAMS
 
 # Check if SELinux is enforcing
 if [ "$(getenforce)" == "Enforcing" ]; then
-  echo "SELinux is in Enforcing mode."
-
+  echo "SELinux is in Enforcing mode. Restoring context to k3s so it can start."
   # Restore the context on the file after it's installed
   restorecon -v "/usr/local/bin/k3s"
 else

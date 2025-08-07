@@ -28,12 +28,6 @@ yum makecache || dnf makecache || echo "WARNING: Failed to refresh package cache
 
 echo "RHSM registration script finished at $(date)"
 
-# wait for subscription registration to complete
-#while ! subscription-manager status; do
-#    echo "Waiting for RHSM registration..."
-#    sleep 10
-#done
-
 # install haproxy
 yum install -y haproxy policycoreutils-python-utils
 

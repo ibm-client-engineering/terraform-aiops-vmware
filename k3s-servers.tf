@@ -37,8 +37,8 @@ data "cloudinit_config" "k3s_server_userdata" {
       private_registry_user_password = var.private_registry_user_password,
       private_registry_skip_tls      = var.private_registry_skip_tls ? "true" : "false",
       base_domain                    = var.base_domain,
-      mode                           = var.mode
-      rhsm_username                  = var.rhsm_username
+      mode                           = var.mode,
+      rhsm_username                  = var.rhsm_username,
       rhsm_password                  = var.rhsm_password
     })
   }
@@ -111,7 +111,7 @@ resource "vsphere_virtual_machine" "k3s_server" {
 
   firmware                = "efi" # Ensure this matches your Packer template's firmware type
   efi_secure_boot_enabled = false # Disable Secure Boot during cloning
-
+  
   clone {
     template_uuid = data.vsphere_virtual_machine.template.id
   }

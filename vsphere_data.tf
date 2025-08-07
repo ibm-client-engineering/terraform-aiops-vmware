@@ -24,6 +24,6 @@ data "vsphere_virtual_machine" "template" {
 
 # get the resource pool ID using its full path
 data "vsphere_resource_pool" "target_pool" {
-  name          = "gym-0600010stv-5x09g1zg"
+  name          = var.vsphere_resource_pool
   datacenter_id = data.vsphere_datacenter.this.id
 }

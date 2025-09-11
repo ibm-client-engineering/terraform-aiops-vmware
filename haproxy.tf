@@ -21,10 +21,10 @@ data "cloudinit_config" "haproxy_userdata" {
   part {
     content_type = "text/x-shellscript"
     content = templatefile("${path.module}/cloudinit/haproxy-install.sh", {
-      vsphere_server     = var.vsphere_server,
-      vsphere_user       = var.vsphere_user,
+      vsphere_hostname   = var.vsphere_hostname,
+      vsphere_username   = var.vsphere_username,
       vsphere_password   = var.vsphere_password,
-      vsphere_datacenter = var.datacenter_name,
+      vsphere_datacenter = var.vsphere_datacenter,
       vsphere_folder     = var.vsphere_folder,
       rhsm_username      = var.rhsm_username,
       rhsm_password      = var.rhsm_password

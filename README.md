@@ -27,36 +27,12 @@ Select `Request vCenter access (OCP Gym)`
 
 ## Pre flight checklist
 
-### 🛠️ Preparing a RHEL 9 Template for Terraform on vSphere
+### 🛠️ Preparing a RHEL Template for Terraform on vSphere
 
-To use this Terraform code to deploy virtual machines on vSphere, you first need a **VM template**. Here's how to create one using a RHEL 9 image.
+An existing RHEL VM template needs to be created. See the [Packer RHEL 8 & 9 for VMware vSphere](https://github.com/ibm-client-engineering/packer-rhel-vsphere/) project for instructions on building a VM template
+in vSphere.
 
----
-
-#### 1. 🎯 Define the Goal
-
-You want to deploy VMs using Terraform, but Terraform needs a **pre-existing VM template** to clone from.
-
----
-
-#### 2. 🧱 Use the Red Hat Image Builder
-
-Red Hat provides a tool to generate OVA files for RHEL 9. This is a convenient way to create a VM image that can be imported into vSphere.
-
-> 🔗 You can find the [image builder](https://console.redhat.com/insights/image-builder/) on the Red Hat Customer Portal.
-
----
-
-#### 3. 📦 Deploy the OVA to vSphere
-
-Once you have the OVA file:
-
-1. Open **vSphere Client**.
-2. Go to **Deploy OVF Template**.
-3. Upload the RHEL 9 OVA.
-4. Follow the wizard to deploy it as a VM or template.
-
-### Install Terraform
+### ✅ Install Terraform
 
 > 💡 **Tip:** If you're connecting to vSphere through a **WireGuard VPN**, you might experience **timeouts or connectivity issues**.  
 > In such cases, consider running your Terraform commands from a **bastion host** that resides **within the same network or environment** as vSphere.  
@@ -65,38 +41,15 @@ Once you have the OVA file:
 To install **Terraform** from a **RHEL 8** bastion host, follow these steps:
 
 ---
-
-#### ✅ Step-by-Step Installation Guide
-
-##### 1. **Install Required Packages**
 Open a terminal and run:
 
 ```bash
-sudo dnf install -y yum-utils git bind-utils
+sudo yum install -y yum-utils git bind-utils
+sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
+sudo yum install -y terraform
+
 ```
 
-##### 2. **Add the HashiCorp Repository**
-Create a new repo file:
-
-```bash
-sudo tee /etc/yum.repos.d/hashicorp.repo <<EOF
-[hashicorp]
-name=HashiCorp Stable - RHEL 8
-baseurl=https://rpm.releases.hashicorp.com/RHEL/8/\$basearch/stable
-enabled=1
-gpgcheck=1
-gpgkey=https://rpm.releases.hashicorp.com/gpg
-EOF
-```
-
-##### 3. **Install Terraform**
-Now install Terraform:
-
-```bash
-sudo dnf install -y terraform
-```
-
-##### 4. **Verify Installation**
 Check the installed version:
 
 ```bash
@@ -123,7 +76,7 @@ The example table above assumes the `base_domain` is set to `gym.lan`
 
 #### 🛠️ How to Set Static IPs in pfSense
 
-1. **Log in to pfSense** via the web UI (usually at `https://192.168.252.1`).
+1. **Log in to pfSense** via the web UI (usually at `https://192.168.252.1`, default user is `admin`).
 2. Navigate to:  
    **Services** → **DNS Forwarder**.
 3. Scroll down to **Host Overrides**.
@@ -164,46 +117,124 @@ To ensure that your static DHCP mappings (like `k3s-agent-0.gym.lan`, etc.) are 
 
 ### Clone the repository
 
-Clone this repository to your local workstation. This will allow you to configure and run terraform.
+Clone this repository to your **bastion host**. This will allow you to configure and run terraform.
 
-#### 1. **Install Required Packages**
-Open a terminal and run:
-
-```bash
-sudo dnf install -y git bind-utils
-```
-
-#### 2. **Clone the repo**
-Now clone this repo:
+From the bastion host, run:
 
 ```bash
-git clone <repo>
+git clone https://github.com/ibm-client-engineering/terraform-aiops-vmware.git
+cd terraform-aiops-vmware
+
 ```
+
 ### Configure Private Registry (Optional)
 
 If you want to do an offline installation, you can configure a private registry using [Artifactory](https://github.com/ibm-client-engineering/terraform-artifactory-vmware) and follow the product instructions for mirroring the images.
 
 ### Define Terraform variables
 
-There is a file called `terraform.tfvars.example`. Copy this file to `terraform.tfvars` and set variables here according to
-your needs.
+There is a file called `terraform.tfvars.example`. Copy this file to `terraform.tfvars` and set variables here according to your needs.
 
-<!--
-| Var   | Required | Desc |
-| ------- | ------- | ----------- |
-| `cluster_name` | `yes`        | the name of your K3s cluster. Default: k3s-cluster |
-| `common_prefix`  | `no`  | Prefix used in all resource names/tags. Default: k3s |
-| `ibm_entitlement_key` | `yes` | The installation entitlement key for AIOps |
-| `accept_license` | `yes` | Set to "true" to accept license. |
-| `aiops_version` | `yes` | Set to the version you want to install (e.g. "4.9.0") |
-| `ignore_prereqs` | `no` | If set to `true` the installation will continue even if prerequisites are not met. This can be useful for development, for instance you can install a base version with only 5 worker nodes successfully. |
-| `k3s_server_desired_capacity` | `no`        | Desired number of k3s servers. Default 3 |
-| `k3s_server_min_capacity` | `no`        | Min number of k3s servers: Default 3 |
-| `k3s_server_max_capacity` | `no`        |  Max number of k3s servers: Default 4 |
-| `k3s_worker_desired_capacity` | `no`        | Desired number of k3s workers. Default 7 |
-| `k3s_worker_min_capacity` | `no`        | Min number of k3s workers: Default 5 |
-| `k3s_worker_max_capacity` | `no`        | Max number of k3s workers: Default 9 |
--->
+```bash
+cp terraform.tfvars.example terraform.tfvars
+```
+
+<details>
+<summary>IBM TechZone Tip</summary>
+Use the following commands to configure some of the variables in an IBM TechZone environment.
+
+---
+
+Install `yq`
+```shell
+sudo curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/local/bin/yq
+sudo chmod +x /usr/local/bin/yq
+yq --version
+```
+
+---
+
+```shell
+# Define the source YAML file path
+YAML_FILE=~/vmware-ipi.yaml
+
+# --- Update vsphere.pkrvars.hcl ---
+echo "Updating vsphere.pkrvars.hcl..."
+vsphere_hostname=$(yq e '.vsphere_hostname' "$YAML_FILE")
+vsphere_username=$(yq e '.vsphere_username' "$YAML_FILE")
+vsphere_password=$(yq e '.vsphere_password' "$YAML_FILE")
+vsphere_datacenter=$(yq e '.vsphere_datacenter' "$YAML_FILE")
+vsphere_cluster=$(yq e '.vsphere_cluster' "$YAML_FILE")
+vsphere_datastore=$(yq e '.vsphere_datastore' "$YAML_FILE")
+vsphere_network=$(yq e '.vsphere_network' "$YAML_FILE")
+vsphere_folder=$(yq e '.vsphere_folder' "$YAML_FILE")
+vsphere_resource_pool=$(yq e '.vsphere_resource_pool' "$YAML_FILE")
+
+# Perform in-place substitutions using sed.
+# The 'sed' commands handle the replacement of the existing values.
+sed -i \
+    -e "s|vsphere_hostname\s*=\s*\".*\"|vsphere_hostname = \"$vsphere_hostname\"|" \
+    -e "s|vsphere_username\s*=\s*\".*\"|vsphere_username = \"$vsphere_username\"|" \
+    -e "s|vsphere_password\s*=\s*\".*\"|vsphere_password = \"$vsphere_password\"|" \
+    -e "s|vsphere_datacenter\s*=\s*\".*\"|vsphere_datacenter = \"$vsphere_datacenter\"|" \
+    -e "s|vsphere_cluster\s*=\s*\".*\"|vsphere_cluster = \"$vsphere_cluster\"|" \
+    -e "s|vsphere_datastore\s*=\s*\".*\"|vsphere_datastore = \"$vsphere_datastore\"|" \
+    -e "s|vsphere_network\s*=\s*\".*\"|vsphere_network = \"$vsphere_network\"|" \
+    -e "s|vsphere_folder\s*=\s*\".*\"|vsphere_folder = \"$(echo "$vsphere_folder" | sed -E 's|^/IBMCloud/vm/||')\"|" \
+    -e "s|template_name\s*=\s*\".*\"|template_name = \"$(echo "$vsphere_folder" | sed -E 's|^/IBMCloud/vm/||')/linux-rhel-9.4-master\"|" \
+    -e "s|vsphere_resource_pool\s*=\s*\".*\"|vsphere_resource_pool = \"$(echo "$vsphere_resource_pool" | sed -E 's|^/IBMCloud/host/ocp-gym/Resources/Cluster Resource Pool/Gym Member Resource Pool/||')\"|" \
+    terraform.tfvars
+
+echo "All variables have been updated successfully."
+```
+
+</details>
+
+**vSphere Connection and Environment**:
+
+You can skip this section if you used the TechZone tip above.
+
+These variables define the connection details for your vSphere server and the specific environment where the virtual machines will be deployed.
+
+* `base_domain`: The root domain for your cluster. The cluster's domain will be a subdomain of this value.
+
+* `vsphere_hostname`: The fully qualified domain name (FQDN) of your vSphere server.
+
+* `vsphere_username`: The username for accessing the vSphere server.
+
+* `vsphere_password`: The password for the vSphere user.
+
+* `vsphere_cluster`: The name of the vSphere cluster where the VMs will be deployed.
+
+* `vsphere_datacenter`: The name of the vSphere data center.
+
+* `vsphere_datastore`: The name of the vSphere data store where the VM disks will be located.
+
+* `vsphere_network`: The name of the VM network segment for the cluster nodes.
+
+* `vsphere_folder`: The path to the vSphere folder where the VMs will be created.
+
+* `vsphere_resource_pool`: The name of the resource pool to use for the VMs. Use only the name of the resource pool, not the full path.
+
+**Virtual Machine and Template**:
+
+* `template_name`: The path and name of the base VM template used to clone the new cluster nodes. This template should be a RHEL image that is supported by AIOps on Linux.
+
+**AIOps Configuration**:
+
+These variables control the installation of IBM Cloud Pak for AIOps.
+
+* `k3s_agent_count`: The number of K3s agent nodes to create in the cluster.
+
+* `aiops_version`: The specific version of AIOps to install.
+
+* `ibm_entitlement_key`: Your IBM Cloud entitlement key, which is required to pull container images from the IBM registry.
+
+* `accept_license`: A boolean value (`true` or `false`) to indicate whether you accept the license agreement for the AIOps software. **Must be set to `true` to proceed with the installation.**
+
+* `install_aiops`: A boolean value to enable or disable the AIOps installation.
+
+* `ignore_prereqs`: A boolean value to skip the prerequisite checks during the AIOps installation.
 
 ## Deploy
 
@@ -414,6 +445,8 @@ This can be run from any node, it will show the verbose output of the launch scr
 
 Once the install is complete, the `aiopsctl status` command run from a control node will show the following.
 
+For convenience, you can run `./getstatus.sh`.
+
 ```
 o- [03 Jun 25 14:58 EDT] Getting cluster status
 Control Plane Node(s):
@@ -454,6 +487,8 @@ o- [03 Jun 25 14:58 EDT] Checking AIOps installation status
 ### Get the server info
 
 From a control node as the root user, run the following command to get the URL and login credentials.
+
+For convenience, you can run `./getlogin.sh`.
 
 ```
 aiopsctl server info --show-secrets

@@ -70,8 +70,8 @@ fi
 curl -L https://github.com/vmware/govmomi/releases/latest/download/govc_Linux_x86_64.tar.gz | tar -C /usr/local/bin -xz
 chmod +x /usr/local/bin/govc
 
-export GOVC_URL=${vsphere_server}
-export GOVC_USERNAME=${vsphere_user}
+export GOVC_URL=${vsphere_hostname}
+export GOVC_USERNAME=${vsphere_username}
 export GOVC_PASSWORD=${vsphere_password}
 export GOVC_INSECURE=true
 

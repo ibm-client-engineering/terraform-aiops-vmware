@@ -18,10 +18,10 @@ data "cloudinit_config" "k3s_server_userdata" {
   part {
     content_type = "text/x-shellscript"
     content = templatefile("${path.module}/cloudinit/k3s-install-server.sh", {
-      vsphere_server                 = var.vsphere_server,
-      vsphere_user                   = var.vsphere_user,
+      vsphere_hostname               = var.vsphere_hostname,
+      vsphere_username               = var.vsphere_username,
       vsphere_password               = var.vsphere_password,
-      vsphere_datacenter             = var.datacenter_name,
+      vsphere_datacenter             = var.vsphere_datacenter,
       vsphere_folder                 = var.vsphere_folder,
       k3s_token                      = random_password.k3s_token.result,
       install_k3s                    = var.install_k3s,
@@ -120,7 +120,7 @@ resource "vsphere_virtual_machine" "k3s_server" {
 
   firmware                = "efi" # Ensure this matches your Packer template's firmware type
   efi_secure_boot_enabled = false # Disable Secure Boot during cloning
-  
+
   clone {
     template_uuid = data.vsphere_virtual_machine.template.id
   }

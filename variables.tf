@@ -6,35 +6,43 @@ variable "rhsm_password" {
   type = string
 }
 
-variable "vsphere_server" {
-  type = string
+// vSphere Credentials
+
+variable "vsphere_hostname" {
+  type        = string
+  description = "The fully qualified domain name or IP address of the vCenter Server instance."
 }
 
-variable "vsphere_user" {
-  type = string
+variable "vsphere_username" {
+  type        = string
+  description = "The username to login to the vCenter Server instance."
+  sensitive   = true
 }
 
 variable "vsphere_password" {
-  type = string
+  type        = string
+  description = "The password for the login to the vCenter Server instance."
+  sensitive   = true
 }
 
-variable "datacenter_name" {
+variable "vsphere_datacenter" {
   type        = string
   description = "The name of the vSphere Datacenter into which resources will be created."
 }
 
-variable "cluster_name" {
+variable "vsphere_cluster" {
   type        = string
   description = "The vSphere Cluster into which resources will be created."
 }
 
-variable "datastore_name" {
+variable "vsphere_datastore" {
   type        = string
   description = "The vSphere Datastore into which resources will be created."
 }
 
-variable "vm_network_name" {
-  type = string
+variable "vsphere_network" {
+  type        = string
+  description = "The name of the target vSphere network segment."
 }
 
 variable "template_name" {
@@ -42,8 +50,8 @@ variable "template_name" {
 }
 
 variable "secondary_disk_size" {
-  type = number
-  default = 30
+  type        = number
+  default     = 30
   description = "How big we want our disk in case we don't like defaults."
 }
 
@@ -58,11 +66,13 @@ variable "ip" {
 }
 
 variable "vsphere_folder" {
-  type = string
+  type        = string
+  description = "The name of the target vSphere folder."
 }
 
 variable "vsphere_resource_pool" {
-  type = string
+  type        = string
+  description = "The name of the target vSphere resource pool."
 }
 
 variable "k3s_server_count" {
@@ -147,7 +157,7 @@ variable "mailcow_ip" {
 
 variable "pfsense_host" {
   type        = string
-  default = "192.168.252.1"
+  default     = "192.168.252.1"
   description = "The hostname or IP address of the pfSense instance to manage."
 }
 

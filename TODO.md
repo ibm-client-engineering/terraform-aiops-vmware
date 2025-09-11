@@ -1,3 +1,4 @@
 - Change k3s servers to dhcp
 - Parameterize haproxy IP, it's nice if this is static b/c you don't have to change your etc/hosts file after each rebuild
-- Add reference to artifactory instructions for offline install
+- Ability set IP addresses of control plane nodes and haproxy
+- Ability to have prefix value for hostnames with default aiops

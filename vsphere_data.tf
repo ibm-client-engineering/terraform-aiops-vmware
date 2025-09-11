@@ -1,19 +1,19 @@
 data "vsphere_datacenter" "this" {
-  name = var.datacenter_name
+  name = var.vsphere_datacenter
 }
 
 data "vsphere_compute_cluster" "this" {
-  name          = var.cluster_name
+  name          = var.vsphere_cluster
   datacenter_id = data.vsphere_datacenter.this.id
 }
 
 data "vsphere_datastore" "this" {
-  name          = var.datastore_name
+  name          = var.vsphere_datastore
   datacenter_id = data.vsphere_datacenter.this.id
 }
 
 data "vsphere_network" "this" {
-  name          = var.vm_network_name
+  name          = var.vsphere_network
   datacenter_id = data.vsphere_datacenter.this.id
 }
 

@@ -21,8 +21,8 @@ data "cloudinit_config" "mailcow_userdata" {
   part {
     content_type = "text/x-shellscript"
     content = templatefile("${path.module}/cloudinit/mailcow-register.sh", {
-      rhsm_username      = var.rhsm_username,
-      rhsm_password      = var.rhsm_password
+      rhsm_username = var.rhsm_username,
+      rhsm_password = var.rhsm_password
     })
   }
 }
@@ -36,7 +36,7 @@ data "cloudinit_config" "mailcow_userdata" {
 # }
 
 resource "vsphere_virtual_machine" "mailcow" {
-  count        = var.use_mailcow ? 1 : 0
+  count            = var.use_mailcow ? 1 : 0
   name             = "mailcow"
   resource_pool_id = data.vsphere_resource_pool.target_pool.id
   datastore_id     = data.vsphere_datastore.this.id

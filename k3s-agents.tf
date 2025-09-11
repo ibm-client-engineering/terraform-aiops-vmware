@@ -10,9 +10,10 @@ data "cloudinit_config" "k3s_agent_userdata" {
     filename     = "init.cfg"
     content_type = "text/cloud-config"
     content = templatefile("${path.module}/cloudinit/agent-userdata.yaml", {
-      index       = "${count.index}",
-      base_domain = "${var.base_domain}",
-      public_key  = tls_private_key.deployer.public_key_openssh
+      index         = "${count.index}",
+      base_domain   = "${var.base_domain}",
+      public_key    = tls_private_key.deployer.public_key_openssh,
+      common_prefix = var.common_prefix
     })
   }
 
@@ -32,7 +33,8 @@ data "cloudinit_config" "k3s_agent_userdata" {
       private_registry_skip_tls      = var.private_registry_skip_tls ? "true" : "false",
       rhsm_username                  = var.rhsm_username,
       rhsm_password                  = var.rhsm_password,
-      mode                           = var.mode
+      mode                           = var.mode,
+      common_prefix                  = var.common_prefix
     })
   }
 }
@@ -50,7 +52,7 @@ locals {
 resource "vsphere_virtual_machine" "k3s_agent" {
   count = var.k3s_agent_count
 
-  name             = "k3s-agent-${count.index}"
+  name             = "${var.common_prefix}-k3s-agent-${count.index}"
   resource_pool_id = data.vsphere_resource_pool.target_pool.id
   datastore_id     = data.vsphere_datastore.this.id
 

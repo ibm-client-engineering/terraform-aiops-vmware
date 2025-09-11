@@ -60,11 +60,6 @@ variable "nameservers" {
   default = []
 }
 
-variable "ip" {
-  type    = string
-  default = "192.168.200.40"
-}
-
 variable "vsphere_folder" {
   type        = string
   description = "The name of the target vSphere folder."
@@ -94,7 +89,7 @@ variable "install_k3s" {
 variable "install_aiops" {
   default     = "true"
   type        = string
-  description = "Can be either 'true' or 'false'. Setting this to a string so it's easier to pass to the script"
+  description = "Can be either 'true' or 'false'."
 }
 
 variable "common_prefix" {

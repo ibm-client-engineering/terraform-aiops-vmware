@@ -1,6 +1,6 @@
 #cloud-config
-hostname: k3s-agent-${index}
-fqdn: k3s-agent-${index}.${base_domain}
+hostname: ${common_prefix}-k3s-agent-${index}
+fqdn: ${common_prefix}-k3s-agent-${index}.${base_domain}
 preserve_hostname: false
 
 users:

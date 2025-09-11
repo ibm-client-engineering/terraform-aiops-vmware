@@ -9,9 +9,10 @@ data "cloudinit_config" "k3s_server_userdata" {
     filename     = "init.cfg"
     content_type = "text/cloud-config"
     content = templatefile("${path.module}/cloudinit/server-userdata.yaml", {
-      index       = "${count.index}",
-      base_domain = "${var.base_domain}"
-      public_key  = tls_private_key.deployer.public_key_openssh
+      index         = "${count.index}",
+      base_domain   = "${var.base_domain}"
+      public_key    = tls_private_key.deployer.public_key_openssh
+      common_prefix = "${var.common_prefix}"
     })
   }
 
@@ -40,7 +41,8 @@ data "cloudinit_config" "k3s_server_userdata" {
       base_domain                    = var.base_domain,
       mode                           = var.mode,
       rhsm_username                  = var.rhsm_username,
-      rhsm_password                  = var.rhsm_password
+      rhsm_password                  = var.rhsm_password,
+      common_prefix                  = var.common_prefix
     })
   }
 }
@@ -57,7 +59,7 @@ locals {
 resource "vsphere_virtual_machine" "k3s_server" {
   count = var.k3s_server_count
 
-  name             = "k3s-server-${count.index}"
+  name             = "${var.common_prefix}-k3s-server-${count.index}"
   resource_pool_id = data.vsphere_resource_pool.target_pool.id
   datastore_id     = data.vsphere_datastore.this.id
 

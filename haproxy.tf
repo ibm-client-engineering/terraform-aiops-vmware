@@ -27,7 +27,8 @@ data "cloudinit_config" "haproxy_userdata" {
       vsphere_datacenter = var.vsphere_datacenter,
       vsphere_folder     = var.vsphere_folder,
       rhsm_username      = var.rhsm_username,
-      rhsm_password      = var.rhsm_password
+      rhsm_password      = var.rhsm_password,
+      common_prefix      = var.common_prefix
     })
   }
 }

@@ -1,2 +1,2 @@
-local-hostname: k3s-agent-${index}.${base_domain}
-instance-id: k3s-agent-${index}
+local-hostname: ${common_prefix}-k3s-agent-${index}.${base_domain}
+instance-id: ${common_prefix}-k3s-agent-${index}

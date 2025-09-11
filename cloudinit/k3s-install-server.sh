@@ -223,7 +223,7 @@ fi
 
 yum -y install bind-utils
 
-first_instance="k3s-server-0.${base_domain}"
+first_instance="${common_prefix}-k3s-server-0.${base_domain}"
 instance_id=$(hostname)
 
 # this is not being set automatically

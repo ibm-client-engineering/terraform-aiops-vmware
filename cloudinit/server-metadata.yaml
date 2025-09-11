@@ -1,5 +1,5 @@
-local-hostname: k3s-server-${index}.${base_domain}
-instance-id: k3s-server-${index}
+local-hostname: ${common_prefix}-k3s-server-${index}.${base_domain}
+instance-id: ${common_prefix}-k3s-server-${index}
 
 network:
   version: 2

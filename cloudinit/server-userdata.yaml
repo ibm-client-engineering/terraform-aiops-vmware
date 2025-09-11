@@ -1,6 +1,6 @@
 #cloud-config
-hostname: k3s-server-${index}
-fqdn: k3s-server-${index}.${base_domain}
+hostname: ${common_prefix}-k3s-server-${index}
+fqdn: ${common_prefix}-k3s-server-${index}.${base_domain}
 preserve_hostname: false
 manage_etc_hosts: true
 

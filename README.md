@@ -65,12 +65,15 @@ terraform -version
 
 There are 4 static IP addresses that are needed.
 
+> 💡 **Important:** The `aiops` prefix here is the default established in `terraform.tfvars` by `common_prefix`. 
+> If you wish to use a different prefix, change the values below and the `common_prefix` variable value.
+
 | Type         | Hostname       | IP               | FQDN                  |
 |--------------|----------------|------------------|------------------------|
 | `haproxy`    | `haproxy`      | `192.168.252.9`  | `haproxy.gym.lan`      |
-| `k3s server` | `k3s-server-0` | `192.168.252.10` | `k3s-server-0.gym.lan` |
-| `k3s server` | `k3s-server-1` | `192.168.252.11` | `k3s-server-1.gym.lan` |
-| `k3s server` | `k3s-server-2` | `192.168.252.12` | `k3s-server-2.gym.lan` |
+| `k3s server` | `aiops-k3s-server-0` | `192.168.252.10` | `aiops-k3s-server-0.gym.lan` |
+| `k3s server` | `aiops-k3s-server-1` | `192.168.252.11` | `aiops-k3s-server-1.gym.lan` |
+| `k3s server` | `aiops-k3s-server-2` | `192.168.252.12` | `aiops-k3s-server-2.gym.lan` |
 
 The example table above assumes the `base_domain` is set to `gym.lan`
 
@@ -102,7 +105,7 @@ nslookup haproxy.gym.lan
 
 #### 🧭 Enable DNS Forwarder Static Mapping Registration in pfSense
 
-To ensure that your static DHCP mappings (like `k3s-agent-0.gym.lan`, etc.) are resolvable via DNS, you need to enable a specific setting in pfSense:
+To ensure that your static DHCP mappings (like `aiops-k3s-agent-0.gym.lan`, etc.) are resolvable via DNS, you need to enable a specific setting in pfSense:
 
 ##### ✅ Steps
 
@@ -308,10 +311,10 @@ vm_ip_addresses = [
 
 ### Check progress of installation
 
-It takes about **5 minutes** for the actual installation to start. You can ssh to any of the control plan nodes found in the output of `vm_ip_addresses` using `clouduser`. The following command opens an SSH session with `k3s-server-0`.
+It takes about **5 minutes** for the actual installation to start. You can ssh to any of the control plan nodes found in the output of `vm_ip_addresses` using `clouduser`. The following command opens an SSH session with `aiops-k3s-server-0`.
 
 ```bash
-sed -i '/^k3s-/d' ~/.ssh/known_hosts && ssh -o StrictHostKeyChecking=no -i ./id_rsa clouduser@k3s-server-0
+sed -i '/^k3s-/d' ~/.ssh/known_hosts && ssh -o StrictHostKeyChecking=no -i ./id_rsa clouduser@aiops-k3s-server-0
 ```
 
 > 💡 **Tip:** The default password for clouduser is `mypassword`
@@ -331,17 +334,17 @@ Sample output:
 ```
 o- [03 Jun 25 14:58 EDT] Getting cluster status
 Control Plane Node(s):
-    k3s-server-0.gym.lan Ready
-    k3s-server-1.gym.lan Ready
-    k3s-server-2.gym.lan Ready
+    aiops-k3s-server-0.gym.lan Ready
+    aiops-k3s-server-1.gym.lan Ready
+    aiops-k3s-server-2.gym.lan Ready
 
 Worker Node(s):
-    k3s-agent-0.gym.lan Ready
-    k3s-agent-1.gym.lan Ready
-    k3s-agent-2.gym.lan Ready
-    k3s-agent-3.gym.lan Ready
-    k3s-agent-4.gym.lan Ready
-    k3s-agent-5.gym.lan Ready
+    aiops-k3s-agent-0.gym.lan Ready
+    aiops-k3s-agent-1.gym.lan Ready
+    aiops-k3s-agent-2.gym.lan Ready
+    aiops-k3s-agent-3.gym.lan Ready
+    aiops-k3s-agent-4.gym.lan Ready
+    aiops-k3s-agent-5.gym.lan Ready
 
 o- [03 Jun 25 14:58 EDT] Checking AIOps installation status
 
@@ -379,15 +382,15 @@ kubectl get nodes
 Sample output:
 ```
 NAME                   STATUS   ROLES                       AGE     VERSION
-k3s-agent-0.gym.lan    Ready    worker                      5m38s   v1.31.7+k3s1
-k3s-agent-1.gym.lan    Ready    worker                      5m38s   v1.31.7+k3s1
-k3s-agent-2.gym.lan    Ready    worker                      5m38s   v1.31.7+k3s1
-k3s-agent-3.gym.lan    Ready    worker                      5m37s   v1.31.7+k3s1
-k3s-agent-4.gym.lan    Ready    worker                      5m39s   v1.31.7+k3s1
-k3s-agent-5.gym.lan    Ready    worker                      5m41s   v1.31.7+k3s1
-k3s-server-0.gym.lan   Ready    control-plane,etcd,master   5m56s   v1.31.7+k3s1
-k3s-server-1.gym.lan   Ready    control-plane,etcd,master   5m21s   v1.31.7+k3s1
-k3s-server-2.gym.lan   Ready    control-plane,etcd,master   5m10s   v1.31.7+k3s1
+aiops-k3s-agent-0.gym.lan    Ready    worker                      5m38s   v1.31.7+k3s1
+aiops-k3s-agent-1.gym.lan    Ready    worker                      5m38s   v1.31.7+k3s1
+aiops-k3s-agent-2.gym.lan    Ready    worker                      5m38s   v1.31.7+k3s1
+aiops-k3s-agent-3.gym.lan    Ready    worker                      5m37s   v1.31.7+k3s1
+aiops-k3s-agent-4.gym.lan    Ready    worker                      5m39s   v1.31.7+k3s1
+aiops-k3s-agent-5.gym.lan    Ready    worker                      5m41s   v1.31.7+k3s1
+aiops-k3s-server-0.gym.lan   Ready    control-plane,etcd,master   5m56s   v1.31.7+k3s1
+aiops-k3s-server-1.gym.lan   Ready    control-plane,etcd,master   5m21s   v1.31.7+k3s1
+aiops-k3s-server-2.gym.lan   Ready    control-plane,etcd,master   5m10s   v1.31.7+k3s1
 ```
 
 List all pods:
@@ -450,17 +453,17 @@ For convenience, you can run `./getstatus.sh`.
 ```
 o- [03 Jun 25 14:58 EDT] Getting cluster status
 Control Plane Node(s):
-    k3s-server-0.gym.lan Ready
-    k3s-server-1.gym.lan Ready
-    k3s-server-2.gym.lan Ready
+    aiops-k3s-server-0.gym.lan Ready
+    aiops-k3s-server-1.gym.lan Ready
+    aiops-k3s-server-2.gym.lan Ready
 
 Worker Node(s):
-    k3s-agent-0.gym.lan Ready
-    k3s-agent-1.gym.lan Ready
-    k3s-agent-2.gym.lan Ready
-    k3s-agent-3.gym.lan Ready
-    k3s-agent-4.gym.lan Ready
-    k3s-agent-5.gym.lan Ready
+    aiops-k3s-agent-0.gym.lan Ready
+    aiops-k3s-agent-1.gym.lan Ready
+    aiops-k3s-agent-2.gym.lan Ready
+    aiops-k3s-agent-3.gym.lan Ready
+    aiops-k3s-agent-4.gym.lan Ready
+    aiops-k3s-agent-5.gym.lan Ready
 
 o- [03 Jun 25 14:58 EDT] Checking AIOps installation status
 

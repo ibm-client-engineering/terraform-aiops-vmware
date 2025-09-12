@@ -42,7 +42,8 @@ data "cloudinit_config" "k3s_server_userdata" {
       mode                           = var.mode,
       rhsm_username                  = var.rhsm_username,
       rhsm_password                  = var.rhsm_password,
-      common_prefix                  = var.common_prefix
+      common_prefix                  = var.common_prefix,
+      subnet_cidr                    = var.subnet_cidr
     })
   }
 }
@@ -52,7 +53,8 @@ locals {
     for i in range(var.k3s_server_count) : templatefile("${path.module}/cloudinit/server-metadata.yaml", {
       index         = i,
       base_domain   = var.base_domain,
-      common_prefix = var.common_prefix
+      common_prefix = var.common_prefix,
+      subnet_cidr   = var.subnet_cidr
     })
   ]
 }

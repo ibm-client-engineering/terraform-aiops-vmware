@@ -58,15 +58,13 @@ terraform -version
 
 ### Configure Networking
 
-> 💡 **Important:** Currently this Terraform module assumes that the network is **192.168.252.0/24**.
-> This is hard-coded into the module, sorry.
-
 #### Required Static IPs
 
 There are 4 static IP addresses that are needed.
 
 > 💡 **Important:** The `aiops` prefix here is the default established in `terraform.tfvars` by `common_prefix`. 
 > If you wish to use a different prefix, change the values below and the `common_prefix` variable value.
+> Also, the subnet is controlled by the `subnet_cidr` value in the variables, default is `192.168.252.0/24`.
 
 | Type         | Hostname       | IP               | FQDN                  |
 |--------------|----------------|------------------|------------------------|

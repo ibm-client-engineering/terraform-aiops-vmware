@@ -97,6 +97,12 @@ variable "common_prefix" {
   default = "aiops"
 }
 
+variable "subnet_cidr" {
+  type        = string
+  default     = "192.168.252.0/24"
+  description = "Subnet CIDR for the cluster."
+}
+
 variable "accept_license" {
   type    = string
   default = "false"

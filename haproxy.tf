@@ -1,6 +1,7 @@
 locals {
   haproxy_metadata = templatefile("${path.module}/cloudinit/haproxy-metadata.yaml", {
-    base_domain = "${var.base_domain}"
+    base_domain = "${var.base_domain}",
+    subnet_cidr = "${var.subnet_cidr}"
   })
 }
 

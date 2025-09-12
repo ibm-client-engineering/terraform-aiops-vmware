@@ -305,13 +305,13 @@ data:
   default.server: |
     cp-console-aiops.${k3s_url} {
         hosts {
-              ${cidrhost(subnet_cidr, 9)} cp-console-aiops.${k3s_url}
+              ${haproxy_ip} cp-console-aiops.${k3s_url}
               fallthrough
         }
     }
     aiops-cpd.${k3s_url} {
         hosts {
-              ${cidrhost(subnet_cidr, 9)} aiops-cpd.${k3s_url}
+              ${haproxy_ip} aiops-cpd.${k3s_url}
               fallthrough
         }
     }

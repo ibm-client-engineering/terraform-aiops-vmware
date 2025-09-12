@@ -43,7 +43,8 @@ data "cloudinit_config" "k3s_server_userdata" {
       rhsm_username                  = var.rhsm_username,
       rhsm_password                  = var.rhsm_password,
       common_prefix                  = var.common_prefix,
-      subnet_cidr                    = var.subnet_cidr
+      subnet_cidr                    = var.subnet_cidr,
+      haproxy_ip                     = var.haproxy_ip
     })
   }
 }

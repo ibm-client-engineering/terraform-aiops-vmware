@@ -103,6 +103,13 @@ variable "subnet_cidr" {
   description = "Subnet CIDR for the cluster."
 }
 
+variable "haproxy_ip" {
+  type        = string
+  default     = "192.168.252.9"
+  description = "IP address for the AIOps haproxy."
+}
+
+
 variable "accept_license" {
   type    = string
   default = "false"
@@ -144,6 +151,8 @@ variable "base_domain" {
   default = "gym.lan"
 }
 
+// mailcow (demo application) variables
+
 variable "use_mailcow" {
   default     = false
   type        = bool
@@ -173,6 +182,8 @@ variable "pfsense_password" {
   default     = "pfsense"
   description = "Password for pfSense management."
 }
+
+// Private registry variables
 
 variable "use_private_registry" {
   default     = false

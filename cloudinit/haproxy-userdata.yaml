@@ -1,6 +1,6 @@
 #cloud-config
-hostname: haproxy
-fqdn: haproxy.${base_domain}
+hostname: ${common_prefix}-haproxy
+fqdn: ${common_prefix}-haproxy.${base_domain}
 
 users:
   - name: clouduser

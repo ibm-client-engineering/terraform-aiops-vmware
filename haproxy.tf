@@ -1,7 +1,8 @@
 locals {
   haproxy_metadata = templatefile("${path.module}/cloudinit/haproxy-metadata.yaml", {
     base_domain = "${var.base_domain}",
-    subnet_cidr = "${var.subnet_cidr}"
+    subnet_cidr = "${var.subnet_cidr}",
+    common_prefix = "${var.common_prefix}"
   })
 }
 
@@ -15,7 +16,8 @@ data "cloudinit_config" "haproxy_userdata" {
     content_type = "text/cloud-config"
     content = templatefile("${path.module}/cloudinit/haproxy-userdata.yaml", {
       base_domain = "${var.base_domain}"
-      public_key  = tls_private_key.deployer.public_key_openssh
+      public_key  = tls_private_key.deployer.public_key_openssh,
+      common_prefix = "${var.common_prefix}"
     })
   }
 
@@ -36,7 +38,7 @@ data "cloudinit_config" "haproxy_userdata" {
 
 resource "vsphere_virtual_machine" "haproxy" {
 
-  name             = "haproxy"
+  name             = "${var.common_prefix}-haproxy"
   resource_pool_id = data.vsphere_resource_pool.target_pool.id
   datastore_id     = data.vsphere_datastore.this.id
 

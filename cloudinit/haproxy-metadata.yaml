@@ -1,5 +1,5 @@
-local-hostname: haproxy.${base_domain}
-instance-id: haproxy
+local-hostname: ${common_prefix}-haproxy.${base_domain}
+instance-id: ${common_prefix}-haproxy
 
 network:
   version: 2

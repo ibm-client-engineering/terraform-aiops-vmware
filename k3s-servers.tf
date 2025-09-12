@@ -27,7 +27,7 @@ data "cloudinit_config" "k3s_server_userdata" {
       k3s_token                      = random_password.k3s_token.result,
       install_k3s                    = var.install_k3s,
       install_aiops                  = var.install_aiops,
-      k3s_url                        = "haproxy.${var.base_domain}",
+      k3s_url                        = "${var.common_prefix}-haproxy.${var.base_domain}",
       accept_license                 = var.accept_license,
       ibm_entitlement_key            = var.ibm_entitlement_key,
       aiops_version                  = var.aiops_version

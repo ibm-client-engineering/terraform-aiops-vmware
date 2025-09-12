@@ -68,7 +68,7 @@ There are 4 static IP addresses that are needed.
 
 | Type         | Hostname       | IP               | FQDN                  |
 |--------------|----------------|------------------|------------------------|
-| `haproxy`    | `haproxy`      | `192.168.252.9`  | `haproxy.gym.lan`      |
+| `haproxy`    | `aiops-haproxy`      | `192.168.252.9`  | `aiops-haproxy.gym.lan`      |
 | `k3s server` | `aiops-k3s-server-0` | `192.168.252.10` | `aiops-k3s-server-0.gym.lan` |
 | `k3s server` | `aiops-k3s-server-1` | `192.168.252.11` | `aiops-k3s-server-1.gym.lan` |
 | `k3s server` | `aiops-k3s-server-2` | `192.168.252.12` | `aiops-k3s-server-2.gym.lan` |
@@ -84,7 +84,7 @@ The example table above assumes the `base_domain` is set to `gym.lan`
 4. For each device:
    - Click **Add**.
    - Set the **IP address** (from the table above).
-   - Set the **Hostname** (e.g., `haproxy`).
+   - Set the **Hostname** (e.g., `aiops-haproxy`).
    - Set the **Domain** to `gym.lan` (or appropriate base domain) to form the FQDN.
    - Click **Save**.
 5. Click **Apply Changes** at the top of the page.
@@ -98,7 +98,7 @@ To ensure the FQDNs resolve correctly:
 - Test resolution using:
 
 ```bash
-nslookup haproxy.gym.lan
+nslookup aiops-haproxy.gym.lan
 ```
 
 #### 🧭 Enable DNS Forwarder Static Mapping Registration in pfSense
@@ -498,7 +498,7 @@ aiopsctl server info --show-secrets
 Sample output:
 ```
 Cluster Access Details
-URL:      aiops-cpd.haproxy.gym.lan
+URL:      aiops-cpd.aiops-haproxy.gym.lan
 Username: cpadmin
 Password: 6oiKSZ6rStHoUW3V3oCBSen2AjVtxAhw
 ```
@@ -516,8 +516,8 @@ terraform output
 Sample output:
 ```
 aiops_etc_hosts = <<EOT
-192.168.252.9 aiops-cpd.haproxy.gym.lan
-192.168.252.9 cp-console-aiops.haproxy.gym.lan
+192.168.252.9 aiops-cpd.aiops-haproxy.gym.lan
+192.168.252.9 cp-console-aiops.aiops-haproxy.gym.lan
 EOT
 
 ...skip
@@ -528,7 +528,7 @@ Copy the 2 lines in the `aiops_etc_hosts` output and paste to your [local workst
 hosts file](https://www.siteground.com/kb/hosts-file/).
 
 Navigate in your browser to the URL beginning with `aiops-cpd`. In the example above this
-would be `https://aiops-cpd.haproxy.gym.lan`.
+would be `https://aiops-cpd.aiops-haproxy.gym.lan`.
 
 You will see warnings about self signed certificates, accept all warnings (there will be a few).
 

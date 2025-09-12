@@ -50,8 +50,9 @@ data "cloudinit_config" "k3s_server_userdata" {
 locals {
   server_metadata = [
     for i in range(var.k3s_server_count) : templatefile("${path.module}/cloudinit/server-metadata.yaml", {
-      index       = i,
-      base_domain = var.base_domain
+      index         = i,
+      base_domain   = var.base_domain,
+      common_prefix = var.common_prefix
     })
   ]
 }

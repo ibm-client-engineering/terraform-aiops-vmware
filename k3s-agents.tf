@@ -43,8 +43,9 @@ data "cloudinit_config" "k3s_agent_userdata" {
 locals {
   agent_metadata = [
     for i in range(var.k3s_agent_count) : templatefile("${path.module}/cloudinit/agent-metadata.yaml", {
-      index       = i,
-      base_domain = var.base_domain
+      index         = i,
+      base_domain   = var.base_domain,
+      common_prefix = var.common_prefix
     })
   ]
 }

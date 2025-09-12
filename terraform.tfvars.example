@@ -1,6 +1,9 @@
 // Base domain from which the cluster domain is a subdomain.
 base_domain = "gym.lan"
 
+// prefix to be added to all node names
+common_prefix = "aiops"
+
 // Name of the vSphere server. The dev cluster is on "vcsa.vmware.devcluster.openshift.com".
 vsphere_hostname = "ocpgym-vc.techzone.ibm.local"
 

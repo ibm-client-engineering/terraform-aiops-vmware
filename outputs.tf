@@ -9,6 +9,6 @@ output "haproxy_ip_address" {
 }
 
 output "aiops_etc_hosts" {
-  value       = "${vsphere_virtual_machine.haproxy.default_ip_address} aiops-cpd.haproxy.${var.base_domain}\n${vsphere_virtual_machine.haproxy.default_ip_address} cp-console-aiops.haproxy.${var.base_domain}"
+  value       = "${vsphere_virtual_machine.haproxy.default_ip_address} aiops-cpd.${var.common_prefix}-haproxy.${var.base_domain}\n${vsphere_virtual_machine.haproxy.default_ip_address} cp-console-aiops.${var.common_prefix}-haproxy.${var.base_domain}"
   description = "Plug this into your local /etc/hosts file to properly resolve hosts for UI."
 }

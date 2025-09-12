@@ -55,7 +55,8 @@ locals {
       index         = i,
       base_domain   = var.base_domain,
       common_prefix = var.common_prefix,
-      subnet_cidr   = var.subnet_cidr
+      subnet_cidr   = var.subnet_cidr,
+      k3s_server_ip = "${var.k3s_server_ips[i]}"
     })
   ]
 }

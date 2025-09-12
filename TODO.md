@@ -1,1 +1,0 @@
-- Ability set IP addresses of control plane nodes and haproxy

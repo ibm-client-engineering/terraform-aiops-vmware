@@ -109,6 +109,18 @@ variable "haproxy_ip" {
   description = "IP address for the AIOps haproxy."
 }
 
+variable "k3s_server_ips" {
+  type        = list(string)
+  default     = ["192.168.252.10", "192.168.252.11", "192.168.252.12"]
+  description = "IP addresses for the AIOps k3s server (control plane) nodes."
+  validation {
+    # The condition checks that the length of the list is exactly
+    # equal to the value of the k3s_server_count variable.
+    condition = length(var.k3s_server_ips) == var.k3s_server_count
+    # The error message includes the expected number of items.
+    error_message = "The list must contain exactly ${var.k3s_server_count} values."
+  }
+}
 
 variable "accept_license" {
   type    = string

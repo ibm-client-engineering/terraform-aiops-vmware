@@ -1,6 +1,9 @@
 locals {
   haproxy_metadata = templatefile("${path.module}/cloudinit/haproxy-metadata.yaml", {
-    base_domain = "${var.base_domain}"
+    base_domain   = "${var.base_domain}",
+    subnet_cidr   = "${var.subnet_cidr}",
+    common_prefix = "${var.common_prefix}",
+    haproxy_ip    = "${var.haproxy_ip}"
   })
 }
 
@@ -13,28 +16,30 @@ data "cloudinit_config" "haproxy_userdata" {
     filename     = "init.cfg"
     content_type = "text/cloud-config"
     content = templatefile("${path.module}/cloudinit/haproxy-userdata.yaml", {
-      base_domain = "${var.base_domain}"
-      public_key  = tls_private_key.deployer.public_key_openssh
+      base_domain   = "${var.base_domain}"
+      public_key    = tls_private_key.deployer.public_key_openssh,
+      common_prefix = "${var.common_prefix}"
     })
   }
 
   part {
     content_type = "text/x-shellscript"
     content = templatefile("${path.module}/cloudinit/haproxy-install.sh", {
-      vsphere_server     = var.vsphere_server,
-      vsphere_user       = var.vsphere_user,
+      vsphere_hostname   = var.vsphere_hostname,
+      vsphere_username   = var.vsphere_username,
       vsphere_password   = var.vsphere_password,
-      vsphere_datacenter = var.datacenter_name,
+      vsphere_datacenter = var.vsphere_datacenter,
       vsphere_folder     = var.vsphere_folder,
       rhsm_username      = var.rhsm_username,
-      rhsm_password      = var.rhsm_password
+      rhsm_password      = var.rhsm_password,
+      common_prefix      = var.common_prefix
     })
   }
 }
 
 resource "vsphere_virtual_machine" "haproxy" {
 
-  name             = "haproxy"
+  name             = "${var.common_prefix}-haproxy"
   resource_pool_id = data.vsphere_resource_pool.target_pool.id
   datastore_id     = data.vsphere_datastore.this.id
 

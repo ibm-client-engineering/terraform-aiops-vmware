@@ -1,40 +1,50 @@
 variable "rhsm_username" {
   type = string
+  description = "The username for your Red Hat Subscription Management account."
 }
 
 variable "rhsm_password" {
   type = string
+  description = "The password for your Red Hat Subscription Management account."  
 }
 
-variable "vsphere_server" {
-  type = string
+// vSphere Credentials
+
+variable "vsphere_hostname" {
+  type        = string
+  description = "The fully qualified domain name or IP address of the vCenter Server instance."
 }
 
-variable "vsphere_user" {
-  type = string
+variable "vsphere_username" {
+  type        = string
+  description = "The username to login to the vCenter Server instance."
+  sensitive   = true
 }
 
 variable "vsphere_password" {
-  type = string
+  type        = string
+  description = "The password for the login to the vCenter Server instance."
+  sensitive   = true
 }
 
-variable "datacenter_name" {
+variable "vsphere_datacenter" {
   type        = string
   description = "The name of the vSphere Datacenter into which resources will be created."
 }
 
-variable "cluster_name" {
+variable "vsphere_cluster" {
   type        = string
   description = "The vSphere Cluster into which resources will be created."
 }
 
-variable "datastore_name" {
+variable "vsphere_datastore" {
   type        = string
   description = "The vSphere Datastore into which resources will be created."
 }
 
-variable "vm_network_name" {
-  type = string
+variable "vsphere_network" {
+  type        = string
+  description = "The name of the target vSphere network segment."
 }
 
 variable "template_name" {
@@ -42,8 +52,8 @@ variable "template_name" {
 }
 
 variable "secondary_disk_size" {
-  type = number
-  default = 30
+  type        = number
+  default     = 30
   description = "How big we want our disk in case we don't like defaults."
 }
 
@@ -52,17 +62,14 @@ variable "nameservers" {
   default = []
 }
 
-variable "ip" {
-  type    = string
-  default = "192.168.200.40"
-}
-
 variable "vsphere_folder" {
-  type = string
+  type        = string
+  description = "The name of the target vSphere folder."
 }
 
 variable "vsphere_resource_pool" {
-  type = string
+  type        = string
+  description = "The name of the target vSphere resource pool."
 }
 
 variable "k3s_server_count" {
@@ -84,12 +91,37 @@ variable "install_k3s" {
 variable "install_aiops" {
   default     = "true"
   type        = string
-  description = "Can be either 'true' or 'false'. Setting this to a string so it's easier to pass to the script"
+  description = "Can be either 'true' or 'false'."
 }
 
 variable "common_prefix" {
   type    = string
   default = "aiops"
+}
+
+variable "subnet_cidr" {
+  type        = string
+  default     = "192.168.252.0/24"
+  description = "Subnet CIDR for the cluster."
+}
+
+variable "haproxy_ip" {
+  type        = string
+  default     = "192.168.252.9"
+  description = "IP address for the AIOps haproxy."
+}
+
+variable "k3s_server_ips" {
+  type        = list(string)
+  default     = ["192.168.252.10", "192.168.252.11", "192.168.252.12"]
+  description = "IP addresses for the AIOps k3s server (control plane) nodes."
+  validation {
+    # The condition checks that the length of the list is exactly
+    # equal to the value of the k3s_server_count variable.
+    condition = length(var.k3s_server_ips) == var.k3s_server_count
+    # The error message includes the expected number of items.
+    error_message = "The list must contain exactly ${var.k3s_server_count} values."
+  }
 }
 
 variable "accept_license" {
@@ -133,6 +165,8 @@ variable "base_domain" {
   default = "gym.lan"
 }
 
+// mailcow (demo application) variables
+
 variable "use_mailcow" {
   default     = false
   type        = bool
@@ -147,7 +181,7 @@ variable "mailcow_ip" {
 
 variable "pfsense_host" {
   type        = string
-  default = "192.168.252.1"
+  default     = "192.168.252.1"
   description = "The hostname or IP address of the pfSense instance to manage."
 }
 
@@ -162,6 +196,8 @@ variable "pfsense_password" {
   default     = "pfsense"
   description = "Password for pfSense management."
 }
+
+// Private registry variables
 
 variable "use_private_registry" {
   default     = false

@@ -70,15 +70,15 @@ fi
 curl -L https://github.com/vmware/govmomi/releases/latest/download/govc_Linux_x86_64.tar.gz | tar -C /usr/local/bin -xz
 chmod +x /usr/local/bin/govc
 
-export GOVC_URL=${vsphere_server}
-export GOVC_USERNAME=${vsphere_user}
+export GOVC_URL=${vsphere_hostname}
+export GOVC_USERNAME=${vsphere_username}
 export GOVC_PASSWORD=${vsphere_password}
 export GOVC_INSECURE=true
 
 # get all 3 k3s server private IP addresses once they are running
 private_ips=
 while true; do
-    private_ips=$(govc vm.info -json $(govc find /${vsphere_datacenter}/vm/${vsphere_folder} -type m -name 'k3s-server-*') | jq -r '.virtualMachines[] | select(.runtime.powerState == "poweredOn") | .guest.ipAddress' | grep -v '^null$')
+    private_ips=$(govc vm.info -json $(govc find /${vsphere_datacenter}/vm/${vsphere_folder} -type m -name '${common_prefix}-k3s-server-*') | jq -r '.virtualMachines[] | select(.runtime.powerState == "poweredOn") | .guest.ipAddress' | grep -v '^null$')
     line_count=$(echo "$private_ips" | wc -l)
     
     if [ "$line_count" -eq 3 ]; then

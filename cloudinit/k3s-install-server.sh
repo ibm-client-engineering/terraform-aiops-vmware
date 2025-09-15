@@ -223,7 +223,7 @@ fi
 
 yum -y install bind-utils
 
-first_instance="k3s-server-0.${base_domain}"
+first_instance="${common_prefix}-k3s-server-0.${base_domain}"
 instance_id=$(hostname)
 
 # this is not being set automatically
@@ -305,13 +305,13 @@ data:
   default.server: |
     cp-console-aiops.${k3s_url} {
         hosts {
-              192.168.252.9 cp-console-aiops.${k3s_url}
+              ${haproxy_ip} cp-console-aiops.${k3s_url}
               fallthrough
         }
     }
     aiops-cpd.${k3s_url} {
         hosts {
-              192.168.252.9 aiops-cpd.${k3s_url}
+              ${haproxy_ip} aiops-cpd.${k3s_url}
               fallthrough
         }
     }

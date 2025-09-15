@@ -1,5 +1,5 @@
-local-hostname: haproxy.${base_domain}
-instance-id: haproxy
+local-hostname: ${common_prefix}-haproxy.${base_domain}
+instance-id: ${common_prefix}-haproxy
 
 network:
   version: 2
@@ -7,9 +7,9 @@ network:
     ens192:
       dhcp4: false
       addresses:
-        - 192.168.252.9/24
-      gateway4: 192.168.252.1
+        - ${haproxy_ip}/${split("/", subnet_cidr)[1]}
+      gateway4: ${cidrhost(subnet_cidr, 1)}
       nameservers:
-        addresses: [192.168.252.1]
+        addresses: [${cidrhost(subnet_cidr, 1)}]
         search:
           - ${base_domain}

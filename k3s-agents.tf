@@ -10,9 +10,10 @@ data "cloudinit_config" "k3s_agent_userdata" {
     filename     = "init.cfg"
     content_type = "text/cloud-config"
     content = templatefile("${path.module}/cloudinit/agent-userdata.yaml", {
-      index       = "${count.index}",
-      base_domain = "${var.base_domain}",
-      public_key  = tls_private_key.deployer.public_key_openssh
+      index         = "${count.index}",
+      base_domain   = "${var.base_domain}",
+      public_key    = tls_private_key.deployer.public_key_openssh,
+      common_prefix = var.common_prefix
     })
   }
 
@@ -20,7 +21,7 @@ data "cloudinit_config" "k3s_agent_userdata" {
     content_type = "text/x-shellscript"
     content = templatefile("${path.module}/cloudinit/k3s-install-agent.sh", {
       k3s_token                      = random_password.k3s_token.result,
-      k3s_url                        = "haproxy.${var.base_domain}",
+      k3s_url                        = "${var.common_prefix}-haproxy.${var.base_domain}",
       accept_license                 = var.accept_license,
       ibm_entitlement_key            = var.ibm_entitlement_key,
       aiops_version                  = var.aiops_version,
@@ -32,7 +33,8 @@ data "cloudinit_config" "k3s_agent_userdata" {
       private_registry_skip_tls      = var.private_registry_skip_tls ? "true" : "false",
       rhsm_username                  = var.rhsm_username,
       rhsm_password                  = var.rhsm_password,
-      mode                           = var.mode
+      mode                           = var.mode,
+      common_prefix                  = var.common_prefix
     })
   }
 }
@@ -41,8 +43,9 @@ data "cloudinit_config" "k3s_agent_userdata" {
 locals {
   agent_metadata = [
     for i in range(var.k3s_agent_count) : templatefile("${path.module}/cloudinit/agent-metadata.yaml", {
-      index       = i,
-      base_domain = var.base_domain
+      index         = i,
+      base_domain   = var.base_domain,
+      common_prefix = var.common_prefix
     })
   ]
 }
@@ -50,7 +53,7 @@ locals {
 resource "vsphere_virtual_machine" "k3s_agent" {
   count = var.k3s_agent_count
 
-  name             = "k3s-agent-${count.index}"
+  name             = "${var.common_prefix}-k3s-agent-${count.index}"
   resource_pool_id = data.vsphere_resource_pool.target_pool.id
   datastore_id     = data.vsphere_datastore.this.id
 

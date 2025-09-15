@@ -9,24 +9,25 @@ data "cloudinit_config" "k3s_server_userdata" {
     filename     = "init.cfg"
     content_type = "text/cloud-config"
     content = templatefile("${path.module}/cloudinit/server-userdata.yaml", {
-      index       = "${count.index}",
-      base_domain = "${var.base_domain}"
-      public_key  = tls_private_key.deployer.public_key_openssh
+      index         = "${count.index}",
+      base_domain   = "${var.base_domain}"
+      public_key    = tls_private_key.deployer.public_key_openssh
+      common_prefix = "${var.common_prefix}"
     })
   }
 
   part {
     content_type = "text/x-shellscript"
     content = templatefile("${path.module}/cloudinit/k3s-install-server.sh", {
-      vsphere_server                 = var.vsphere_server,
-      vsphere_user                   = var.vsphere_user,
+      vsphere_hostname               = var.vsphere_hostname,
+      vsphere_username               = var.vsphere_username,
       vsphere_password               = var.vsphere_password,
-      vsphere_datacenter             = var.datacenter_name,
+      vsphere_datacenter             = var.vsphere_datacenter,
       vsphere_folder                 = var.vsphere_folder,
       k3s_token                      = random_password.k3s_token.result,
       install_k3s                    = var.install_k3s,
       install_aiops                  = var.install_aiops,
-      k3s_url                        = "haproxy.${var.base_domain}",
+      k3s_url                        = "${var.common_prefix}-haproxy.${var.base_domain}",
       accept_license                 = var.accept_license,
       ibm_entitlement_key            = var.ibm_entitlement_key,
       aiops_version                  = var.aiops_version
@@ -40,7 +41,10 @@ data "cloudinit_config" "k3s_server_userdata" {
       base_domain                    = var.base_domain,
       mode                           = var.mode,
       rhsm_username                  = var.rhsm_username,
-      rhsm_password                  = var.rhsm_password
+      rhsm_password                  = var.rhsm_password,
+      common_prefix                  = var.common_prefix,
+      subnet_cidr                    = var.subnet_cidr,
+      haproxy_ip                     = var.haproxy_ip
     })
   }
 }
@@ -48,8 +52,11 @@ data "cloudinit_config" "k3s_server_userdata" {
 locals {
   server_metadata = [
     for i in range(var.k3s_server_count) : templatefile("${path.module}/cloudinit/server-metadata.yaml", {
-      index       = i,
-      base_domain = var.base_domain
+      index         = i,
+      base_domain   = var.base_domain,
+      common_prefix = var.common_prefix,
+      subnet_cidr   = var.subnet_cidr,
+      k3s_server_ip = "${var.k3s_server_ips[i]}"
     })
   ]
 }
@@ -57,7 +64,7 @@ locals {
 resource "vsphere_virtual_machine" "k3s_server" {
   count = var.k3s_server_count
 
-  name             = "k3s-server-${count.index}"
+  name             = "${var.common_prefix}-k3s-server-${count.index}"
   resource_pool_id = data.vsphere_resource_pool.target_pool.id
   datastore_id     = data.vsphere_datastore.this.id
 
@@ -120,7 +127,7 @@ resource "vsphere_virtual_machine" "k3s_server" {
 
   firmware                = "efi" # Ensure this matches your Packer template's firmware type
   efi_secure_boot_enabled = false # Disable Secure Boot during cloning
-  
+
   clone {
     template_uuid = data.vsphere_virtual_machine.template.id
   }

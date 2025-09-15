@@ -197,7 +197,7 @@ You can skip this section if you used the TechZone tip above.
 
 These variables define the connection details for your vSphere server and the specific environment where the virtual machines will be deployed.
 
-* `base_domain`: The root domain for your cluster. The cluster's domain will be a subdomain of this value.
+* `base_domain`: The root domain for your cluster. The cluster's domain will be a subdomain of this value (default is `gym.lan`).
 
 * `vsphere_hostname`: The fully qualified domain name (FQDN) of your vSphere server.
 
@@ -217,9 +217,25 @@ These variables define the connection details for your vSphere server and the sp
 
 * `vsphere_resource_pool`: The name of the resource pool to use for the VMs. Use only the name of the resource pool, not the full path.
 
-**Virtual Machine and Template**:
+**Environment and Template**:
 
 * `template_name`: The path and name of the base VM template used to clone the new cluster nodes. This template should be a RHEL image that is supported by AIOps on Linux.
+
+* `subnet_cidr`: The CIDR block for the cluster's subnet (default is `192.168.252.0/24`).
+
+* `common_prefix`: The prefix used for all hostnames and identifiers (default is `aiops`).
+
+* `haproxy_ip`: The IP address of the HAProxy server (default is `192.168.252.9`).
+
+* `k3s_server_ips`: The static IP addresses of the 3 control plane nodes (default is `["192.168.252.10", "192.168.252.11", "192.168.252.12"]`)
+
+**Red Hat Subscription Manager Credentials**:
+
+Ensure that the account used has a valid RedHat subscription.
+
+* `rhsm_username`: The username for your Red Hat Subscription Management (RHSM) account. This is typically your login to the Red Hat Customer Portal.
+
+* `rhsm_password`: The password for your RHSM account.
 
 **AIOps Configuration**:
 
@@ -236,6 +252,22 @@ These variables control the installation of IBM Cloud Pak for AIOps.
 * `install_aiops`: A boolean value to enable or disable the AIOps installation.
 
 * `ignore_prereqs`: A boolean value to skip the prerequisite checks during the AIOps installation.
+
+**Private Registry Configuration (Optional)**:
+
+These variables are used if you are pulling container images from a private registry instead of the public IBM registry.
+
+* `use_private_registry`: A boolean to enable the use of a private registry.
+
+* `private_registry_host`: The hostname of the private registry.
+
+* `private_registry_port`: The port number for the private registry.
+
+* `private_registry_repo`: The name of the repository in the private registry.
+
+* `private_registry_user`: The username for logging into the private registry.
+
+* `private_registry_user_password`: The password for the private registry user.
 
 ## Deploy
 

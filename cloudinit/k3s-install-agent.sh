@@ -193,8 +193,6 @@ firewall-cmd --permanent --add-port=5001/tcp # Distributed registry
 firewall-cmd --permanent --zone=trusted --add-source=10.42.0.0/16 # pods
 firewall-cmd --permanent --zone=trusted --add-source=10.43.0.0/16 # services
 firewall-cmd --reload
-#systemctl stop firewalld
-#systemctl disable firewalld
 
 # Re-enable SELinux only if it was originally enforcing
 if [ "$SELINUX_INITIAL_STATE" = "Enforcing" ]; then

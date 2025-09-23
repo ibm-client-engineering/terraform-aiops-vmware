@@ -313,7 +313,7 @@ if [[ "$first_instance" == "$instance_id" ]]; then
 
   disable_k3s_audit
 
-  #nonroot_config
+  nonroot_config
 
   # wait for k3s startup
   until kubectl get pods -A | grep 'Running'; do
@@ -362,9 +362,22 @@ EOF
 
   # install aiops
   if [[ "$install_aiops" == "true" ]]; then
-    aiopsctl server up --load-balancer-host="${k3s_url}" --mode "${mode}" --force
-  fi
 
+    # Certificate and key file paths
+    CERT_FILE=/tmp/aiops-certificate-chain.pem
+    KEY_FILE=/tmp/aiops.key.pem
+    
+    # Initialize an empty string for the optional parameters
+    CERT_PARAMS=""
+
+    # Check if both the certificate and key files exist
+    if [[ -f "$CERT_FILE" && -f "$KEY_FILE" ]]; then
+      CERT_PARAMS="--certificate-file $CERT_FILE --key-file $KEY_FILE"
+    fi
+
+    # Execute the aiopsctl command with the conditional parameters
+    aiopsctl server up --load-balancer-host="${k3s_url}" --mode "${mode}" $CERT_PARAMS --force
+  fi
 else
   echo ":( Cluster join"
 

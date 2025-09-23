@@ -1,11 +1,11 @@
 variable "rhsm_username" {
-  type = string
+  type        = string
   description = "The username for your Red Hat Subscription Management account."
 }
 
 variable "rhsm_password" {
-  type = string
-  description = "The password for your Red Hat Subscription Management account."  
+  type        = string
+  description = "The password for your Red Hat Subscription Management account."
 }
 
 // vSphere Credentials

@@ -50,9 +50,9 @@ resource "vsphere_virtual_machine" "haproxy" {
   guest_id  = data.vsphere_virtual_machine.template.guest_id
   scsi_type = data.vsphere_virtual_machine.template.scsi_type
 
-  cdrom {
-    client_device = true
-  }
+  # cdrom {
+  #   client_device = true
+  # }
 
   network_interface {
     network_id = data.vsphere_network.this.id

@@ -29,3 +29,6 @@ terraform.rc
 # Ignore generated key files
 id_rsa
 id_rsa.pub
+
+# Ignore generated pem files
+*.pem

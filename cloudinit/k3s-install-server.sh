@@ -57,6 +57,45 @@ chmod 750 /var/lib/rancher/k3s/agent/etc/
 chown root:k3sadmin /var/lib/rancher/k3s/agent/etc/crictl.yaml
 chmod 640 /var/lib/rancher/k3s/agent/etc/crictl.yaml
 
+}
+
+disable_checksum_offload() {
+# Wait for flannel.1 interface to appear
+echo "Waiting for flannel.1 interface to be available..."
+while ! ip link show flannel.1 &> /dev/null; do
+  sleep 1
+done
+echo "flannel.1 interface detected. Disabling tx-checksum-ip-generic..."
+# Disable TX checksum offloading for the flannel.1 interface to prevent packet corruption issues
+# in some environments where the underlying network does not support checksum offloading properly.
+# This is especially relevant in virtualized or cloud environments using Flannel as the CNI.
+ethtool -K flannel.1 tx-checksum-ip-generic off
+}
+
+# use k3sadmin group to allow clouduser to run commands
+nonroot_config() {
+groupadd k3sadmin
+usermod -aG k3sadmin clouduser
+
+chown root:k3sadmin /usr/local/bin/k3s
+chmod 750 /usr/local/bin/k3s
+
+chown root:k3sadmin /etc/rancher/
+chmod 750 /etc/rancher/
+
+chown -R root:k3sadmin /etc/rancher/k3s/
+chmod 750 /etc/rancher/k3s/
+
+chmod 750 /etc/rancher/k3s/config.yaml
+chmod 660 /etc/rancher/k3s/k3s.yaml
+
+# for crictl
+chown root:k3sadmin /var/lib/rancher/k3s/agent/etc/
+chmod 750 /var/lib/rancher/k3s/agent/etc/
+# for crictl
+chown root:k3sadmin /var/lib/rancher/k3s/agent/etc/crictl.yaml
+chmod 640 /var/lib/rancher/k3s/agent/etc/crictl.yaml
+
 %{ if !use_private_registry }
 mkdir -p /home/clouduser/.kube
 cp /etc/rancher/k3s/k3s.yaml /home/clouduser/.kube/config
@@ -274,7 +313,7 @@ if [[ "$first_instance" == "$instance_id" ]]; then
 
   disable_k3s_audit
 
-  #nonroot_config
+  nonroot_config
 
   # wait for k3s startup
   until kubectl get pods -A | grep 'Running'; do
@@ -323,9 +362,22 @@ EOF
 
   # install aiops
   if [[ "$install_aiops" == "true" ]]; then
-    aiopsctl server up --load-balancer-host="${k3s_url}" --mode "${mode}" --force
-  fi
 
+    # Certificate and key file paths
+    CERT_FILE=/tmp/aiops-certificate-chain.pem
+    KEY_FILE=/tmp/aiops.key.pem
+    
+    # Initialize an empty string for the optional parameters
+    CERT_PARAMS=""
+
+    # Check if both the certificate and key files exist
+    if [[ -f "$CERT_FILE" && -f "$KEY_FILE" ]]; then
+      CERT_PARAMS="--certificate-file $CERT_FILE --key-file $KEY_FILE"
+    fi
+
+    # Execute the aiopsctl command with the conditional parameters
+    aiopsctl server up --load-balancer-host="${k3s_url}" --mode "${mode}" $CERT_PARAMS --force
+  fi
 else
   echo ":( Cluster join"
 

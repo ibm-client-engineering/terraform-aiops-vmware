@@ -57,45 +57,6 @@ chmod 750 /var/lib/rancher/k3s/agent/etc/
 chown root:k3sadmin /var/lib/rancher/k3s/agent/etc/crictl.yaml
 chmod 640 /var/lib/rancher/k3s/agent/etc/crictl.yaml
 
-}
-
-disable_checksum_offload() {
-# Wait for flannel.1 interface to appear
-echo "Waiting for flannel.1 interface to be available..."
-while ! ip link show flannel.1 &> /dev/null; do
-  sleep 1
-done
-echo "flannel.1 interface detected. Disabling tx-checksum-ip-generic..."
-# Disable TX checksum offloading for the flannel.1 interface to prevent packet corruption issues
-# in some environments where the underlying network does not support checksum offloading properly.
-# This is especially relevant in virtualized or cloud environments using Flannel as the CNI.
-ethtool -K flannel.1 tx-checksum-ip-generic off
-}
-
-# use k3sadmin group to allow clouduser to run commands
-nonroot_config() {
-groupadd k3sadmin
-usermod -aG k3sadmin clouduser
-
-chown root:k3sadmin /usr/local/bin/k3s
-chmod 750 /usr/local/bin/k3s
-
-chown root:k3sadmin /etc/rancher/
-chmod 750 /etc/rancher/
-
-chown -R root:k3sadmin /etc/rancher/k3s/
-chmod 750 /etc/rancher/k3s/
-
-chmod 750 /etc/rancher/k3s/config.yaml
-chmod 660 /etc/rancher/k3s/k3s.yaml
-
-# for crictl
-chown root:k3sadmin /var/lib/rancher/k3s/agent/etc/
-chmod 750 /var/lib/rancher/k3s/agent/etc/
-# for crictl
-chown root:k3sadmin /var/lib/rancher/k3s/agent/etc/crictl.yaml
-chmod 640 /var/lib/rancher/k3s/agent/etc/crictl.yaml
-
 %{ if !use_private_registry }
 mkdir -p /home/clouduser/.kube
 cp /etc/rancher/k3s/k3s.yaml /home/clouduser/.kube/config
@@ -377,6 +338,25 @@ EOF
 
     # Execute the aiopsctl command with the conditional parameters
     aiopsctl server up --load-balancer-host="${k3s_url}" --mode "${mode}" $CERT_PARAMS --force
+
+    # make sure certificate was created
+    SECRET_NAME="aiops-custom-certificate"
+    NAMESPACE="aiops"
+
+    # Check if the secret exists
+    if ! kubectl get secret "$SECRET_NAME" -n "$NAMESPACE" >/dev/null 2>&1; then
+      echo "Secret '$SECRET_NAME' not found in namespace '$NAMESPACE'."
+      
+      # Check if CERT_PARAMS is not empty
+      if [[ -n "$CERT_PARAMS" ]]; then
+        echo "CERT_PARAMS is set. Creating the custom certificate..."
+        aiopsctl server custom-certificate $CERT_PARAMS
+      else
+        echo "CERT_PARAMS is empty. Skipping certificate creation."
+      fi
+    else
+      echo "Secret '$SECRET_NAME' already exists in namespace '$NAMESPACE'."
+    fi
   fi
 else
   echo ":( Cluster join"
@@ -404,5 +384,5 @@ else
 
   disable_k3s_audit
 
-  #nonroot_config
+  nonroot_config
 fi

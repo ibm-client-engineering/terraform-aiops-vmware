@@ -133,6 +133,7 @@ setsebool -P selinuxuser_execmod 1
 curl -LO "https://github.com/IBM/aiopsctl/releases/download/v${aiops_version}/aiopsctl-linux_amd64.tar.gz"
 tar xf "aiopsctl-linux_amd64.tar.gz"
 mv aiopsctl /usr/local/bin/aiopsctl
+rm -f aiopsctl-linux_amd64.tar.gz
 
 # Get the initial SELinux status
 SELINUX_INITIAL_STATE=$(getenforce)
@@ -204,3 +205,6 @@ fi
 disable_checksum_offload
 
 nonroot_config
+
+# clean up .aiopsctl
+rm -fr ~/.aiopsctl/

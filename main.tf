@@ -1,55 +1,57 @@
+module "aiops_linux" {
 
-terraform {
-  required_providers {
-    local = {
-      source  = "hashicorp/local"
-      version = "~> 2.5"
-    }
-    tls = {
-      source  = "hashicorp/tls"
-      version = "~> 4.0"
-    }
-    # pfsense = {
-    #   source = "marshallford/pfsense"
-    #   version = "0.20.0"
-    # }
-  }
+  source = "./modules/aiops-vmware/"
 
-  required_version = ">= 1.2.0"
+  # -----------------------------------
+  # VSPHERE CONNECTION / LOCATION VARS
+  # -----------------------------------
+  vsphere_username      = var.vsphere_username
+  vsphere_password      = var.vsphere_password
+  vsphere_hostname      = var.vsphere_hostname
+  vsphere_datacenter    = var.vsphere_datacenter
+  vsphere_cluster       = var.vsphere_cluster
+  vsphere_datastore     = var.vsphere_datastore
+  vsphere_network       = var.vsphere_network
+  vsphere_folder        = var.vsphere_folder
+  vsphere_resource_pool = var.vsphere_resource_pool
+  template_name         = var.template_name
+
+  # -----------------------------------
+  # RHEL VARS
+  # -----------------------------------
+  rhsm_username = var.rhsm_username
+  rhsm_password = var.rhsm_password
+
+  # -----------------------------------
+  # CLUSTER & NAMING VARS
+  # -----------------------------------
+  common_prefix       = var.common_prefix
+  k3s_server_count    = var.k3s_server_count
+  k3s_agent_count     = var.k3s_agent_count
+  install_k3s         = var.install_k3s
+  install_aiops       = var.install_aiops
+  base_domain         = var.base_domain
+  accept_license      = var.accept_license
+  ibm_entitlement_key = var.ibm_entitlement_key
+  ignore_prereqs      = var.ignore_prereqs
+  mode                = var.mode
+  aiops_version       = var.aiops_version
+
+  # -----------------------------------
+  # NETWORK CONFIGURATION VARS
+  # -----------------------------------
+  subnet_cidr    = var.subnet_cidr
+  haproxy_ip     = var.haproxy_ip
+  k3s_server_ips = var.k3s_server_ips
+
+  # -----------------------------------
+  # PRIVATE REGISTRY CONFIGURATION VARS
+  # -----------------------------------
+  use_private_registry           = var.use_private_registry
+  private_registry_host          = var.private_registry_host
+  private_registry_repo          = var.private_registry_repo
+  private_registry_port          = var.private_registry_port
+  private_registry_user          = var.private_registry_user
+  private_registry_user_password = var.private_registry_user_password
+  private_registry_skip_tls      = var.private_registry_skip_tls
 }
-
-provider "vsphere" {
-  user           = var.vsphere_username
-  password       = var.vsphere_password
-  vsphere_server = var.vsphere_hostname
-
-  # If you have a self-signed cert
-  allow_unverified_ssl = true
-}
-
-resource "random_password" "k3s_token" {
-  length  = 55
-  special = false
-}
-
-locals {
-  # build the private registry URL
-  private_registry = var.private_registry_repo != "" ? "${var.private_registry_host}:${var.private_registry_port}/${var.private_registry_repo}" : "${var.private_registry_host}:${var.private_registry_port}"
-
-  total_nodes = var.k3s_server_count + var.k3s_agent_count
-
-  # these are the minimums for base and extended deployment
-  cpu_pool    = var.mode == "base" ? 136 : 162
-  mem_pool_gb = var.mode == "base" ? 322 : 380
-
-  # calculate cpus and memory needed per node
-  num_cpus = max(16, ceil(local.cpu_pool / local.total_nodes))
-  memory   = max(20480, ceil(local.mem_pool_gb / local.total_nodes) * 1024)
-}
-
-# provider "pfsense" {
-#   url      = "https://${var.pfsense_host}" 
-#   username = var.pfsense_username
-#   password = var.pfsense_password
-#   tls_skip_verify = true
-# }

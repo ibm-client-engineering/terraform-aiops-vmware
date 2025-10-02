@@ -271,9 +271,43 @@ These variables are used if you are pulling container images from a private regi
 
 ## Deploy
 
-We are now ready to deploy our infrastructure. First we ask terraform to plan the execution with: 
+We are now ready to deploy our infrastructure. First we must initialize terraform.
+
+```shell
+terraform init
+```
+
+Expected output:
 
 ```
+Initializing the backend...
+Initializing modules...
+Initializing provider plugins...
+- Reusing previous version of hashicorp/cloudinit from the dependency lock file
+- Reusing previous version of hashicorp/tls from the dependency lock file
+- Reusing previous version of vmware/vsphere from the dependency lock file
+- Reusing previous version of hashicorp/local from the dependency lock file
+- Reusing previous version of hashicorp/random from the dependency lock file
+- Using previously-installed hashicorp/tls v4.1.0
+- Using previously-installed vmware/vsphere v2.15.0
+- Using previously-installed hashicorp/local v2.5.3
+- Using previously-installed hashicorp/random v3.7.2
+- Using previously-installed hashicorp/cloudinit v2.3.7
+
+Terraform has been successfully initialized!
+
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.
+```
+
+Now that we are initialized, we ask terraform to plan the execution with: 
+
+```shell
 terraform plan
 ```
 
@@ -282,7 +316,7 @@ If everything is ok the output should be something like this:
 ```
 ...skip
 
-Plan: 14 to add, 0 to change, 0 to destroy.
+Plan: 18 to add, 0 to change, 0 to destroy.
 
 Changes to Outputs:
   + aiops_etc_hosts    = (known after apply)
@@ -296,7 +330,7 @@ Changes to Outputs:
 
 now we can deploy our resources with:
 
-```
+```shell
 terraform apply
 ```
 
@@ -304,7 +338,7 @@ Sample output:
 ```
 ...skip
 
-Plan: 14 to add, 0 to change, 0 to destroy.
+Plan: 18 to add, 0 to change, 0 to destroy.
 
 Changes to Outputs:
   + aiops_etc_hosts    = (known after apply)
@@ -344,7 +378,7 @@ vm_ip_addresses = [
 It takes about **5 minutes** for the actual installation to start. You can ssh to any of the control plan nodes found in the output of `vm_ip_addresses` using `clouduser`. The following command opens an SSH session with `aiops-k3s-server-0`.
 
 ```bash
-sed -i '/^k3s-/d' ~/.ssh/known_hosts && ssh -o StrictHostKeyChecking=no -i ./id_rsa clouduser@aiops-k3s-server-0
+sed -i '/^aiops-k3s-/d' ~/.ssh/known_hosts && ssh -o StrictHostKeyChecking=no -i ./id_rsa clouduser@aiops-k3s-server-0
 ```
 
 > 💡 **Tip:** The default password for clouduser is `mypassword`

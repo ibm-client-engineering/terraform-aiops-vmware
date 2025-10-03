@@ -200,14 +200,14 @@ fi
 echo "Opening firewall ports"
 firewall-cmd --permanent --add-port=80/tcp # Application HTTP port
 firewall-cmd --permanent --add-port=443/tcp # Application HTTPS port
-firewall-cmd --permanent --add-port=6443/tcp # Control plane server API
+firewall-cmd --permanent --add-port=6443/tcp # Control plane server API and mirrored registry
 firewall-cmd --permanent --add-port=8472/udp # Virtual network
 firewall-cmd --permanent --add-port=10250/tcp # k3s Kubelet metrics and logs (optional)
 firewall-cmd --permanent --add-port=2379/tcp # k3s etcd client communication
 firewall-cmd --permanent --add-port=2380/tcp # k3s etcd peer communication
 firewall-cmd --permanent --add-port=51820/udp # Flannel + WireGuard (IPv4 traffic)
 firewall-cmd --permanent --add-port=51821/udp # Flannel + WireGuard (IPv6 traffic)
-firewall-cmd --permanent --add-port=5001/tcp # Distributed registry
+firewall-cmd --permanent --add-port=5001/tcp # mirrored registry
 firewall-cmd --permanent --zone=trusted --add-source=10.42.0.0/16 # pods
 firewall-cmd --permanent --zone=trusted --add-source=10.43.0.0/16 # services
 firewall-cmd --reload
@@ -222,7 +222,8 @@ else
     echo "SELinux was not in 'enforcing' mode. No changes made."
 fi
 
-yum -y install bind-utils
+# optional
+yum -y install bind-utils bash-completion
 
 first_instance="${common_prefix}-k3s-server-0.${base_domain}"
 instance_id=$(hostname)
@@ -392,4 +393,13 @@ else
 
   # clean up .aiopsctl
   rm -fr ~/.aiopsctl/
+fi
+
+# Check if kubectl is installed and set up completion
+if command -v kubectl &> /dev/null; then
+    echo "kubectl is installed. Setting up Bash completion..."
+    echo 'source <(kubectl completion bash)' >> ~/.bashrc
+    echo "   -> Added permanent entry to ~/.bashrc"
+else
+    echo "kubectl is NOT installed."
 fi

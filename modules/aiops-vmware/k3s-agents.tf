@@ -105,6 +105,47 @@ resource "vsphere_virtual_machine" "k3s_agent" {
     template_uuid = data.vsphere_virtual_machine.template.id
   }
 
+  # Copy the ethtool fix script
+  provisioner "file" {
+
+    connection {
+      type        = "ssh"
+      user        = "clouduser"
+      private_key = tls_private_key.deployer.private_key_pem
+      host        = self.default_ip_address
+    }
+
+    source      = "${path.module}/cloudinit/flannel-ethtool-fix.sh"
+    destination = "/tmp/flannel-ethtool-fix.sh"
+  }
+
+  # Make the script executable and set ownership to root
+  provisioner "remote-exec" {
+
+    connection {
+      type        = "ssh"
+      user        = "clouduser"
+      private_key = tls_private_key.deployer.private_key_pem
+      host        = self.default_ip_address
+    }
+
+    inline = [
+      "sudo mv /tmp/flannel-ethtool-fix.sh /usr/local/bin/flannel-ethtool-fix.sh",
+      "sudo chmod +x /usr/local/bin/flannel-ethtool-fix.sh",
+      "sudo chown root:root /usr/local/bin/flannel-ethtool-fix.sh",
+    ]
+  }
+
+  lifecycle {
+    # Terraform will ignore any changes to the 'memory' and 'num_cpus' attributes
+    # after the resource has been created.
+    ignore_changes = [
+      memory,
+      num_cpus,
+      extra_config
+    ]
+  }
+
   extra_config = {
     "guestinfo.metadata"          = base64encode(local.agent_metadata[count.index])
     "guestinfo.metadata.encoding" = "base64"

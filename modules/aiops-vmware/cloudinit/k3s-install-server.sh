@@ -21,16 +21,33 @@ done
 }
 
 disable_checksum_offload() {
-# Wait for flannel.1 interface to appear
-echo "Waiting for flannel.1 interface to be available..."
-while ! ip link show flannel.1 &> /dev/null; do
-  sleep 1
-done
-echo "flannel.1 interface detected. Disabling tx-checksum-ip-generic..."
 # Disable TX checksum offloading for the flannel.1 interface to prevent packet corruption issues
 # in some environments where the underlying network does not support checksum offloading properly.
 # This is especially relevant in virtualized or cloud environments using Flannel as the CNI.
-ethtool -K flannel.1 tx-checksum-ip-generic off
+
+cat << 'EOF' >> /etc/systemd/system/flannel-ethtool-fix.service
+[Unit]
+Description=Flannel Ethtool Fix for vSphere VXLAN Checksum Offload
+After=network-online.target
+After=k3s.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/flannel-ethtool-fix.sh
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Reload the systemd configuration to recognize the new unit
+systemctl daemon-reload
+
+# Enable the service to run automatically on every boot
+systemctl enable flannel-ethtool-fix.service
+
+# Start the service immediately (without rebooting)
+systemctl start flannel-ethtool-fix.service
 }
 
 # use k3sadmin group to allow clouduser to run commands
@@ -57,44 +74,50 @@ chmod 750 /var/lib/rancher/k3s/agent/etc/
 chown root:k3sadmin /var/lib/rancher/k3s/agent/etc/crictl.yaml
 chmod 640 /var/lib/rancher/k3s/agent/etc/crictl.yaml
 
-%{ if !use_private_registry }
 mkdir -p /home/clouduser/.kube
 cp /etc/rancher/k3s/k3s.yaml /home/clouduser/.kube/config
 chown -R clouduser:clouduser /home/clouduser/.kube
-%{ endif }
-}
 
-# This script automates the process of disabling audit logging in a K3s server.
-# It works by removing all audit-related settings from the config file and then restarting the service.
-disable_k3s_audit() {
-# Define the path to the K3s configuration file
-K3S_CONFIG_FILE="/etc/rancher/k3s/config.yaml"
-
-# Check if the config file exists
-if [ ! -f "$K3S_CONFIG_FILE" ]; then
-    echo "Error: K3s config file not found at $K3S_CONFIG_FILE."
-    echo "This script assumes you have a config.yaml file to modify."
-    exit 1
+# Check if kubectl is installed and set up completion
+if command -v kubectl &> /dev/null; then
+    echo "kubectl is installed. Setting up Bash completion..."
+    echo 'source <(kubectl --kubeconfig /home/clouduser/.kube/config completion bash)' >> /home/clouduser/.bashrc
+    echo "   -> Added permanent entry to /home/clouduser/.bashrc"
+else
+    echo "kubectl is NOT installed."
 fi
 
-# Use sed to delete lines containing "audit-log" or "audit-policy"
-echo "Removing audit-related configuration from $K3S_CONFIG_FILE..."
-sed -i '/audit-log/d' "$K3S_CONFIG_FILE"
-sed -i '/audit-policy-file/d' "$K3S_CONFIG_FILE"
+cat << 'EOF' >> /home/clouduser/.bashrc
 
-# Restart the K3s service to apply the changes
-echo "Restarting the k3s service to apply changes..."
-sudo systemctl restart k3s
+# Function to list unhealthy K8s pods by filtering out 'Completed' and 'Ready' states (e.g., '1/1')
+kget_unhealthy_pods() {
+  kubectl --kubeconfig /home/clouduser/.kube/config get pods -A | grep -vE "Completed|([0-9]+)/\1"
+}
 
-# Wait for the K3s API server to become ready
-echo "Waiting for k3s to become ready..."
-while ! kubectl get nodes &> /dev/null; do
-    echo "Still waiting..."
-    sleep 3
-done
+# enable vi on the command line
+set -o vi
 
-echo "K3s restart command sent. Audit logging should now be disabled."
-echo "You can check the service status with: sudo systemctl status k3s"
+# kubectl alias
+alias k=kubectl
+# use local kubeconfig
+alias kubectl="kubectl --kubeconfig /home/clouduser/.kube/config"
+EOF
+}
+
+# This script changed the configuration of the k3s audit logging
+k3s_audit_config() {
+
+mkdir -p /etc/rancher/k3s/config.yaml.d/
+
+cat << 'EOF' >> /etc/rancher/k3s/config.yaml.d/audit.yaml
+kube-apiserver-arg:
+    - audit-log-maxbackup=1
+    - audit-log-maxage=3
+    - audit-log-maxsize=10
+EOF
+
+chmod 750 /etc/rancher/k3s/config.yaml.d/audit.yaml
+
 }
 
 echo "Starting RHSM registration script (Simple Content Access enabled) at $(date)"
@@ -274,7 +297,7 @@ if [[ "$first_instance" == "$instance_id" ]]; then
 
   disable_checksum_offload
 
-  disable_k3s_audit
+  k3s_audit_config
 
   nonroot_config
 
@@ -387,7 +410,7 @@ else
 
   disable_checksum_offload
 
-  disable_k3s_audit
+  k3s_audit_config
 
   nonroot_config
 
@@ -403,3 +426,16 @@ if command -v kubectl &> /dev/null; then
 else
     echo "kubectl is NOT installed."
 fi
+
+cat << 'EOF' >> ~/.bashrc
+
+# Function to list unhealthy K8s pods by filtering out 'Completed' and 'Ready' states (e.g., '1/1')
+kget_unhealthy_pods() {
+  kubectl get pods -A | grep -vE "Completed|([0-9]+)/\1"
+}
+
+# enable vi on command line
+set -o vi
+# kubectl alias
+alias k=kubectl
+EOF

@@ -17,16 +17,33 @@ done
 }
 
 disable_checksum_offload() {
-# Wait for flannel.1 interface to appear
-echo "Waiting for flannel.1 interface to be available..."
-while ! ip link show flannel.1 &> /dev/null; do
-  sleep 1
-done
-echo "flannel.1 interface detected. Disabling tx-checksum-ip-generic..."
 # Disable TX checksum offloading for the flannel.1 interface to prevent packet corruption issues
 # in some environments where the underlying network does not support checksum offloading properly.
 # This is especially relevant in virtualized or cloud environments using Flannel as the CNI.
-ethtool -K flannel.1 tx-checksum-ip-generic off
+
+cat << 'EOF' >> /etc/systemd/system/flannel-ethtool-fix.service
+[Unit]
+Description=Flannel Ethtool Fix for vSphere VXLAN Checksum Offload
+After=network-online.target
+After=k3s-agent.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/flannel-ethtool-fix.sh
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Reload the systemd configuration to recognize the new unit
+systemctl daemon-reload
+
+# Enable the service to run automatically on every boot
+systemctl enable flannel-ethtool-fix.service
+
+# Start the service immediately (without rebooting)
+systemctl start flannel-ethtool-fix.service
 }
 
 # use k3sadmin group to allow clouduser to run commands

@@ -378,7 +378,7 @@ vm_ip_addresses = [
 It takes about **5 minutes** for the actual installation to start. You can ssh to any of the control plan nodes found in the output of `vm_ip_addresses` using `clouduser`. The following command opens an SSH session with `aiops-k3s-server-0`.
 
 ```bash
-sed -i '/^aiops-k3s-/d' ~/.ssh/known_hosts && ssh -o StrictHostKeyChecking=no -i ./id_rsa clouduser@aiops-k3s-server-0
+sed -i '/^aiops-k3s-/d' ~/.ssh/known_hosts && ssh -o StrictHostKeyChecking=no -i ./modules/aiops-vmware/id_rsa clouduser@aiops-k3s-server-0
 ```
 
 > 💡 **Tip:** The default password for clouduser is `mypassword`

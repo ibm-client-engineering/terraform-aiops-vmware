@@ -254,6 +254,10 @@ instance_id=$(hostname)
 # this is not being set automatically
 export HOME=/root
 
+# move to save disk space on /
+mkdir -p /var/lib/aiops/storage/.aiopsctl
+ln -s /var/lib/aiops/storage/.aiopsctl /root/.aiopsctl
+
 k3s_install_params=("--accept-license=${accept_license}")
 k3s_install_params+=("--role=control-plane")
 k3s_install_params+=("--token=${k3s_token}")

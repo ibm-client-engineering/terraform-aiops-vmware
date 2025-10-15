@@ -59,14 +59,10 @@ resource "vsphere_virtual_machine" "k3s_agent" {
 
   folder = var.vsphere_folder
 
-  num_cpus  = local.num_cpus
-  memory    = local.memory
+  num_cpus  = local.per_node_cpus
+  memory    = local.per_node_memory_gb
   guest_id  = data.vsphere_virtual_machine.template.guest_id
   scsi_type = data.vsphere_virtual_machine.template.scsi_type
-
-  # cdrom {
-  #   client_device = true
-  # }
 
   network_interface {
     network_id = data.vsphere_network.this.id

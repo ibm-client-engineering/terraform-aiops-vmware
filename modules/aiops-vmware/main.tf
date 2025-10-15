@@ -46,6 +46,41 @@ locals {
   memory   = max(20480, ceil(local.mem_pool_gb / local.total_nodes) * 1024)
 }
 
+
+########################################
+# Persist the per-node memory in state
+########################################
+
+# Terraform 1.4+ (preferred over null_resource)
+resource "terraform_data" "frozen_node_memory" {
+  input = {
+    per_node_memory_gb = local.memory
+  }
+
+  # Keep the first-calculated value unless we intentionally replace this resource
+  lifecycle {
+    ignore_changes = [input]
+  }
+}
+
+resource "terraform_data" "frozen_node_cpu" {
+  input = {
+    per_node_cpus = local.num_cpus
+  }
+
+  # Keep the first-calculated value unless we intentionally replace this resource
+  lifecycle {
+    ignore_changes = [input]
+  }
+}
+
+# Frozen values to use for all nodes, both initial and additional
+locals {
+  per_node_memory_gb = terraform_data.frozen_node_memory.output.per_node_memory_gb
+  per_node_cpus = terraform_data.frozen_node_cpu.output.per_node_cpus
+}
+
+
 # provider "pfsense" {
 #   url      = "https://${var.pfsense_host}" 
 #   username = var.pfsense_username

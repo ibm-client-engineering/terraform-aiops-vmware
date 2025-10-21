@@ -8,6 +8,16 @@ install_k3s=${install_k3s}
 install_aiops=${install_aiops}
 num_nodes=${num_nodes}
 
+SETUP_DIR="$(dirname "$(readlink -f "$0")")"
+MODULES_DIR="$${SETUP_DIR}/server_modules"
+
+# --- Load all module files ---
+# Modules are loaded in alphabetical/numeric order based on their filename.
+for module in "$${MODULES_DIR}"/*.sh; do
+    echo "Sourcing module: $${module}"
+    source "$${module}"
+done
+
 wait_lb() {
 while [ true ]
 do
@@ -78,20 +88,13 @@ mkdir -p /home/clouduser/.kube
 cp /etc/rancher/k3s/k3s.yaml /home/clouduser/.kube/config
 chown -R clouduser:clouduser /home/clouduser/.kube
 
-# Check if kubectl is installed and set up completion
-if command -v kubectl &> /dev/null; then
-    echo "kubectl is installed. Setting up Bash completion..."
-    echo 'source <(kubectl --kubeconfig /home/clouduser/.kube/config completion bash)' >> /home/clouduser/.bashrc
-    echo "   -> Added permanent entry to /home/clouduser/.bashrc"
-else
-    echo "kubectl is NOT installed."
-fi
-
 cat << 'EOF' >> /home/clouduser/.bashrc
+
+export KUBECONFIG="/home/clouduser/.kube/config"
 
 # Function to list unhealthy K8s pods by filtering out 'Completed' and 'Ready' states (e.g., '1/1')
 kget_unhealthy_pods() {
-  kubectl --kubeconfig /home/clouduser/.kube/config get pods -A | grep -vE "Completed|([0-9]+)/\1"
+  kubectl get pods -A | grep -vE "Completed|([0-9]+)/\1"
 }
 
 # enable vi on the command line
@@ -99,9 +102,16 @@ set -o vi
 
 # kubectl alias
 alias k=kubectl
-# use local kubeconfig
-alias kubectl="kubectl --kubeconfig /home/clouduser/.kube/config"
 EOF
+
+# Check if kubectl is installed and set up completion
+if command -v kubectl &> /dev/null; then
+    echo "kubectl is installed. Setting up Bash completion..."
+    echo 'source <(kubectl completion bash)' >> /home/clouduser/.bashrc
+    echo "   -> Added permanent entry to /home/clouduser/.bashrc"
+else
+    echo "kubectl is NOT installed."
+fi
 }
 
 # This script changed the configuration of the k3s audit logging
@@ -119,6 +129,8 @@ EOF
 chmod 750 /etc/rancher/k3s/config.yaml.d/audit.yaml
 
 }
+
+sleep 5
 
 echo "Starting RHSM registration script (Simple Content Access enabled) at $(date)"
 
@@ -390,6 +402,9 @@ EOF
     # clean up .aiopsctl
     rm -fr ~/.aiopsctl/
   fi
+
+  fn_configure_rbac_for_service_account
+
 else
   echo ":( Cluster join"
 

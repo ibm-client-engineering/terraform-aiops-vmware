@@ -70,6 +70,8 @@ chown root:k3sadmin /var/lib/rancher/k3s/agent/etc/crictl.yaml
 chmod 640 /var/lib/rancher/k3s/agent/etc/crictl.yaml
 }
 
+sleep 5
+
 echo "Starting RHSM registration script (Simple Content Access enabled) at $(date)"
 
 RHSM_USERNAME="${rhsm_username}"

@@ -1,0 +1,23 @@
+#cloud-config
+
+# --- 1. EXECUTION (runcmd runs as root by default) ---
+runcmd:
+  # Create the target directory
+  - mkdir -p /var/tmp/k3s-setup
+  # Ensure the script is executable
+  - chmod +x /var/tmp/k3s-setup/k3s-install-server.sh
+  # Execute the single script file
+  - /var/tmp/k3s-setup/k3s-install-server.sh
+
+# --- 2. WRITE FILE TO DISK ---
+write_files:
+  - path: /var/tmp/k3s-setup/k3s-install-server.sh
+    owner: root:root
+    permissions: '0755'
+    content: |
+      ${install_script}
+  - path: /var/tmp/k3s-setup/server_modules/01_k8s_observer.sh
+    owner: root:root
+    permissions: '0755'
+    content: |
+      ${k3s_observer_script}      

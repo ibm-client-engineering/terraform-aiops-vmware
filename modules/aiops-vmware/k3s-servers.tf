@@ -1,3 +1,35 @@
+locals {
+  install_script_content = templatefile("${path.module}/cloudinit/k3s-install-server.sh.tftpl", {
+    vsphere_hostname               = var.vsphere_hostname,
+    vsphere_username               = var.vsphere_username,
+    vsphere_password               = var.vsphere_password,
+    vsphere_datacenter             = var.vsphere_datacenter,
+    vsphere_folder                 = var.vsphere_folder,
+    k3s_token                      = random_password.k3s_token.result,
+    install_k3s                    = var.install_k3s,
+    install_aiops                  = var.install_aiops,
+    k3s_url                        = "${var.common_prefix}-haproxy.${var.base_domain}",
+    accept_license                 = var.accept_license,
+    ibm_entitlement_key            = var.ibm_entitlement_key,
+    aiops_version                  = var.aiops_version
+    num_nodes                      = var.k3s_agent_count + var.k3s_server_count,
+    ignore_prereqs                 = var.ignore_prereqs ? true : false,
+    use_private_registry           = var.use_private_registry ? true : false,
+    private_registry               = local.private_registry,
+    private_registry_user          = var.private_registry_user,
+    private_registry_user_password = var.private_registry_user_password,
+    private_registry_skip_tls      = var.private_registry_skip_tls ? "true" : "false",
+    base_domain                    = var.base_domain,
+    mode                           = var.mode,
+    rhsm_username                  = var.rhsm_username,
+    rhsm_password                  = var.rhsm_password,
+    common_prefix                  = var.common_prefix,
+    subnet_cidr                    = var.subnet_cidr,
+    haproxy_ip                     = var.haproxy_ip
+  })
+  k8s_observer_script_content = templatefile("${path.module}/cloudinit/server_modules/01_k8s_observer.sh.tftpl", {})
+}
+
 data "cloudinit_config" "k3s_server_userdata" {
   count = var.k3s_server_count
 
@@ -17,34 +49,13 @@ data "cloudinit_config" "k3s_server_userdata" {
   }
 
   part {
-    content_type = "text/x-shellscript"
-    content = templatefile("${path.module}/cloudinit/k3s-install-server.sh", {
-      vsphere_hostname               = var.vsphere_hostname,
-      vsphere_username               = var.vsphere_username,
-      vsphere_password               = var.vsphere_password,
-      vsphere_datacenter             = var.vsphere_datacenter,
-      vsphere_folder                 = var.vsphere_folder,
-      k3s_token                      = random_password.k3s_token.result,
-      install_k3s                    = var.install_k3s,
-      install_aiops                  = var.install_aiops,
-      k3s_url                        = "${var.common_prefix}-haproxy.${var.base_domain}",
-      accept_license                 = var.accept_license,
-      ibm_entitlement_key            = var.ibm_entitlement_key,
-      aiops_version                  = var.aiops_version
-      num_nodes                      = var.k3s_agent_count + var.k3s_server_count,
-      ignore_prereqs                 = var.ignore_prereqs ? true : false,
-      use_private_registry           = var.use_private_registry ? true : false,
-      private_registry               = local.private_registry,
-      private_registry_user          = var.private_registry_user,
-      private_registry_user_password = var.private_registry_user_password,
-      private_registry_skip_tls      = var.private_registry_skip_tls ? "true" : "false",
-      base_domain                    = var.base_domain,
-      mode                           = var.mode,
-      rhsm_username                  = var.rhsm_username,
-      rhsm_password                  = var.rhsm_password,
-      common_prefix                  = var.common_prefix,
-      subnet_cidr                    = var.subnet_cidr,
-      haproxy_ip                     = var.haproxy_ip
+    filename     = "k3s-install-server.yaml"
+    content_type = "text/cloud-config"
+    
+    # Pass the resulting script content to the simplified YAML template.
+    content = templatefile("${path.module}/cloudinit/k3s-install-server.yaml.tftpl", {
+      install_script = indent(6, local.install_script_content),
+      k3s_observer_script = indent(6, local.k8s_observer_script_content)
     })
   }
 }

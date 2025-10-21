@@ -1,4 +1,24 @@
 
+locals {
+  install_agent_content = templatefile("${path.module}/cloudinit/k3s-install-agent.sh.tftpl", {
+    k3s_token                      = random_password.k3s_token.result,
+    k3s_url                        = "${var.common_prefix}-haproxy.${var.base_domain}",
+    accept_license                 = var.accept_license,
+    ibm_entitlement_key            = var.ibm_entitlement_key,
+    aiops_version                  = var.aiops_version,
+    ignore_prereqs                 = var.ignore_prereqs ? true : false,
+    use_private_registry           = var.use_private_registry ? true : false,
+    private_registry               = local.private_registry,
+    private_registry_user          = var.private_registry_user,
+    private_registry_user_password = var.private_registry_user_password,
+    private_registry_skip_tls      = var.private_registry_skip_tls ? "true" : "false",
+    rhsm_username                  = var.rhsm_username,
+    rhsm_password                  = var.rhsm_password,
+    mode                           = var.mode,
+    common_prefix                  = var.common_prefix
+  })
+}
+
 data "cloudinit_config" "k3s_agent_userdata" {
   count = var.k3s_agent_count
 
@@ -18,25 +38,15 @@ data "cloudinit_config" "k3s_agent_userdata" {
   }
 
   part {
-    content_type = "text/x-shellscript"
-    content = templatefile("${path.module}/cloudinit/k3s-install-agent.sh", {
-      k3s_token                      = random_password.k3s_token.result,
-      k3s_url                        = "${var.common_prefix}-haproxy.${var.base_domain}",
-      accept_license                 = var.accept_license,
-      ibm_entitlement_key            = var.ibm_entitlement_key,
-      aiops_version                  = var.aiops_version,
-      ignore_prereqs                 = var.ignore_prereqs ? true : false,
-      use_private_registry           = var.use_private_registry ? true : false,
-      private_registry               = local.private_registry,
-      private_registry_user          = var.private_registry_user,
-      private_registry_user_password = var.private_registry_user_password,
-      private_registry_skip_tls      = var.private_registry_skip_tls ? "true" : "false",
-      rhsm_username                  = var.rhsm_username,
-      rhsm_password                  = var.rhsm_password,
-      mode                           = var.mode,
-      common_prefix                  = var.common_prefix
+    filename     = "k3s-install-agent.yaml"
+    content_type = "text/cloud-config"
+    
+    # Pass the resulting script content to the simplified YAML template.
+    content = templatefile("${path.module}/cloudinit/k3s-install-agent.yaml.tftpl", {
+      install_script = indent(6, local.install_agent_content)
     })
   }
+
 }
 
 

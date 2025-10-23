@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "*.tftpl": "shellscript"
+        "*.sh.tftpl": "shellscript",
+        "*.yaml.tftpl": "yaml"
     }
 }

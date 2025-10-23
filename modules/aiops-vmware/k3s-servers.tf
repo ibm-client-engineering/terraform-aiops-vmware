@@ -27,7 +27,16 @@ locals {
     subnet_cidr                    = var.subnet_cidr,
     haproxy_ip                     = var.haproxy_ip
   })
-  k8s_observer_script_content = templatefile("${path.module}/cloudinit/server_modules/01_k8s_observer.sh.tftpl", {})
+  k8s_observer_script_content = templatefile("${path.module}/cloudinit/server_modules/01_k8s_observer.sh.tftpl", {
+    k3s_url                        = "${var.common_prefix}-haproxy.${var.base_domain}"
+  })
+  vcenter_observer_script_content = templatefile("${path.module}/cloudinit/server_modules/02_vcenter_observer.sh.tftpl", {
+    vsphere_hostname               = var.vsphere_hostname,
+    vsphere_username               = var.vsphere_username,
+    vsphere_password               = var.vsphere_password,
+    vsphere_datacenter             = var.vsphere_datacenter
+  })
+  merge_rules_script_content = templatefile("${path.module}/cloudinit/server_modules/03_merge_rules.sh.tftpl", {})
 }
 
 data "cloudinit_config" "k3s_server_userdata" {
@@ -55,7 +64,9 @@ data "cloudinit_config" "k3s_server_userdata" {
     # Pass the resulting script content to the simplified YAML template.
     content = templatefile("${path.module}/cloudinit/k3s-install-server.yaml.tftpl", {
       install_script = indent(6, local.install_script_content),
-      k3s_observer_script = indent(6, local.k8s_observer_script_content)
+      k3s_observer_script = indent(6, local.k8s_observer_script_content),
+      vcenter_observer_script = indent(6, local.vcenter_observer_script_content)
+      merge_rules_script = indent(6, local.merge_rules_script_content)
     })
   }
 }

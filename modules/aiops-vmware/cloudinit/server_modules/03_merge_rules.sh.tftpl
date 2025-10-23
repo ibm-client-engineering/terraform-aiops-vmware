@@ -1,0 +1,141 @@
+#!/bin/bash
+
+# This module contains the function to set up port forwarding and register
+# new Merge Rules with the AIOPs Topology service.
+
+# FUNCTION: fn_create_topology_merge_rules
+fn_create_topology_merge_rules() {
+    local OBSERVER_SVC_NAME="aiops-topology-merge"
+    local SVC_PORT="7082"
+    local LOCAL_PORT="7082"
+    local TENANT_ID="cfd95b7e-3bc7-4006-a4a8-a73a79c71255"
+    local OVERALL_STATUS=0 # 0 = Success, 1 = Failure
+
+    echo "Retrieving Observer credentials..."
+    
+    # 1. Find the AIOps Namespace
+    local AIOPS_NAMESPACE=$(kubectl get po -A | grep aiops-orchestrator-controller | awk '{print$1}' | head -n 1)
+    
+    if [ -z "$${AIOPS_NAMESPACE}" ]; then
+        echo "Error: Could not determine AIOps namespace. Check if aiops-orchestrator-controller is running." >&2
+        return 1
+    fi
+    echo "Found AIOps Namespace: $${AIOPS_NAMESPACE}"
+    
+    # 2. Retrieve Username and Password for basic auth login
+    local TOPO_REST_USR=$(kubectl get secret aiops-topology-asm-credentials -n "$${AIOPS_NAMESPACE}" -o jsonpath='{.data.username}' | base64 --decode)
+    local TOPO_REST_PWD=$(kubectl get secret aiops-topology-asm-credentials -n "$${AIOPS_NAMESPACE}" -o jsonpath='{.data.password}' | base64 --decode)
+    local LOGIN="$${TOPO_REST_USR}:$${TOPO_REST_PWD}"
+    
+    # 3. Setup Port Forwarding
+    echo "Setting up port-forward from localhost:$${LOCAL_PORT} to $${OBSERVER_SVC_NAME}:$${SVC_PORT}..."
+    
+    kubectl port-forward svc/"$${OBSERVER_SVC_NAME}" "$${LOCAL_PORT}":"$${SVC_PORT}" -n "$${AIOPS_NAMESPACE}" > /dev/null 2>&1 &
+    local PF_PID=$!
+    
+    # Ensure the background process is killed when the function exits
+    trap "kill $${PF_PID}" EXIT
+
+    echo "Waiting 5 seconds for port-forward tunnel to stabilize..."
+    sleep 5
+    
+    # --- INTERNAL HELPER FUNCTION FOR REUSE ---
+    # This helper executes the API call and reports its status for a single rule.
+    _fn_execute_rule_call() {
+        local rule_description="$1"
+        local json_payload="$2"
+        local result_code=0
+        
+        echo "Executing API call for: $${rule_description}..."
+        
+        # Execute curl call
+        local curl_output=$(curl -s -k \
+            -X POST "https://localhost:$${LOCAL_PORT}/1.0/merge/rules" \
+            --header "X-TenantID: $${TENANT_ID}" \
+            --header 'Accept: application/json' \
+            -u "$${LOGIN}" \
+            --header 'Content-Type: application/json' \
+            -d "$${json_payload}")
+
+        local curl_exit_code=$?
+
+        if [ "$curl_exit_code" -eq 0 ]; then
+            echo "$${rule_description} Successful. Response:"
+            # Use jq for pretty printing if available
+            echo "$${curl_output}" | jq . 2>/dev/null || echo "$${curl_output}"
+        else
+            echo "Error: $${rule_description} Failed. Curl Exit Code: $${curl_exit_code}" >&2
+            echo "Raw Response: $${curl_output}" >&2
+            result_code=1 # Mark failure
+        fi
+        
+        return "$${result_code}"
+    }
+
+    # --- 5. Rule 1: vCenter Merge Rule (vmvcenter-vm-fqdn) ---
+    local VCENTER_RULE_NAME="vmvcenter-vm-fqdn"
+    
+    VCENTER_PAYLOAD=$(cat <<EOF
+{
+    "name": "$${VCENTER_RULE_NAME}",
+    "ruleType": "mergeRule",
+    "entityTypes": [
+        "vm"
+    ],
+    "tokens": [
+        "\$${name}.gym.lan"
+    ],
+    "ruleStatus": "enabled",
+    "observers": [
+        "vmvcenter-observer"
+    ],
+    "providers": [
+        "*"
+    ]
+}
+EOF
+)
+    _fn_execute_rule_call "VCenter VM FQDN Merge Rule" "$${VCENTER_PAYLOAD}"
+    local vcenter_status=$?
+    [ "$${vcenter_status}" -ne 0 ] && OVERALL_STATUS=1
+
+
+    # --- 6. Rule 2: Kubernetes Merge Rule (k8s-server-hostname) ---
+    local K8S_RULE_NAME="k8s-server-hostname"
+
+    K8S_PAYLOAD=$(cat <<EOF
+{
+    "name": "$${K8S_RULE_NAME}",
+    "ruleType": "mergeRule",
+    "entityTypes": [
+        "server"
+    ],
+    "tokens": [
+        "hostname"
+    ],
+    "ruleStatus": "enabled",
+    "observers": [
+        "kubernetes-observer"
+    ],
+    "providers": [
+        "*"
+    ]
+}
+EOF
+)
+    _fn_execute_rule_call "Kubernetes Server Hostname Merge Rule" "$${K8S_PAYLOAD}"
+    local k8s_status=$?
+    [ "$${k8s_status}" -ne 0 ] && OVERALL_STATUS=1
+
+
+    # --- 7. Clean up and Final Report ---
+    kill $${PF_PID} || true 
+    
+    if [ "$${OVERALL_STATUS}" -eq 0 ]; then
+        echo "Successfully created all Merge Rules."
+        return 0
+    else
+        echo "One or more Merge Rule creations failed." >&2
+        return 1
+    fi
+}

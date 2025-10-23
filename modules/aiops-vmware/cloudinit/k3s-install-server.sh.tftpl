@@ -381,12 +381,12 @@ EOF
     aiopsctl server up --load-balancer-host="${k3s_url}" --mode "${mode}" $CERT_PARAMS --force
 
     # make sure certificate was created
-    SECRET_NAME="aiops-custom-certificate"
-    NAMESPACE="aiops"
+    CERT_SECRET_NAME="aiops-custom-certificate"
+    AIOPS_NAMESPACE="aiops"
 
     # Check if the secret exists
-    if ! kubectl get secret "$SECRET_NAME" -n "$NAMESPACE" >/dev/null 2>&1; then
-      echo "Secret '$SECRET_NAME' not found in namespace '$NAMESPACE'."
+    if ! kubectl get secret "$CERT_SECRET_NAME" -n "$AIOPS_NAMESPACE" >/dev/null 2>&1; then
+      echo "Secret '$CERT_SECRET_NAME' not found in namespace '$AIOPS_NAMESPACE'."
       
       # Check if CERT_PARAMS is not empty
       if [[ -n "$CERT_PARAMS" ]]; then
@@ -396,14 +396,31 @@ EOF
         echo "CERT_PARAMS is empty. Skipping certificate creation."
       fi
     else
-      echo "Secret '$SECRET_NAME' already exists in namespace '$NAMESPACE'."
+      echo "Secret '$CERT_SECRET_NAME' already exists in namespace '$AIOPS_NAMESPACE'."
     fi
 
     # clean up .aiopsctl
     rm -fr ~/.aiopsctl/
   fi
 
+  # set up SA for k8s topology
   fn_configure_rbac_for_service_account
+
+  # wait for k8ss SA token
+  fn_wait_for_secret_token
+
+  # load k8s topology
+  fn_load_k8s_observer_job
+
+  # give k8s observer time to run
+  sleep 60
+  
+  # need entity types defined
+  fn_create_topology_merge_rules
+
+  fn_load_vcenter_observer_job
+  # run observer job again after merge rules created
+  fn_load_k8s_observer_job  
 
 else
   echo ":( Cluster join"

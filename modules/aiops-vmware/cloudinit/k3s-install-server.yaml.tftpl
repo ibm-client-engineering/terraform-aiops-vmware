@@ -9,7 +9,7 @@ runcmd:
   # Execute the single script file
   - /var/tmp/k3s-setup/k3s-install-server.sh
 
-# --- 2. WRITE FILE TO DISK ---
+# --- 2. WRITE FILES TO DISK ---
 write_files:
   - path: /var/tmp/k3s-setup/k3s-install-server.sh
     owner: root:root
@@ -20,4 +20,14 @@ write_files:
     owner: root:root
     permissions: '0755'
     content: |
-      ${k3s_observer_script}      
+      ${k3s_observer_script}
+  - path: /var/tmp/k3s-setup/server_modules/02_vcenter_observer.sh
+    owner: root:root
+    permissions: '0755'
+    content: |
+      ${vcenter_observer_script}
+  - path: /var/tmp/k3s-setup/server_modules/03_merge_rules.sh
+    owner: root:root
+    permissions: '0755'
+    content: |
+      ${merge_rules_script}      

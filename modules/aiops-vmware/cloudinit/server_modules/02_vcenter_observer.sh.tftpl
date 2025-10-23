@@ -1,0 +1,100 @@
+#!/bin/bash
+
+# This module contains the function to set up port forwarding and register
+# a new VCenter Observer job with the AIOPs Topology service.
+
+fn_load_vcenter_observer_job() {
+    local VC_API_URL="https://${vsphere_hostname}/rest"
+    local VC_HOSTNAME="${vsphere_hostname}"
+    local VC_PASSWORD="${vsphere_password}"
+    local DATA_CENTER="${vsphere_datacenter}"
+
+    local OBSERVER_SVC_NAME="aiops-topology-vmvcenter-observer"
+    local SVC_PORT="9110"
+    local LOCAL_PORT="9110"
+    local TENANT_ID="cfd95b7e-3bc7-4006-a4a8-a73a79c71255"
+    local ADMIN_USER="${vsphere_username}"
+
+    echo "Retrieving Observer credentials..."
+    
+    # 1. Find the AIOps Namespace
+    local AIOPS_NAMESPACE=$(kubectl get po -A | grep aiops-orchestrator-controller | awk '{print$1}' | head -n 1)
+    
+    if [ -z "$${AIOPS_NAMESPACE}" ]; then
+        echo "Error: Could not determine AIOps namespace. Check if aiops-orchestrator-controller is running." >&2
+        return 1
+    fi
+    echo "Found AIOps Namespace: $${AIOPS_NAMESPACE}"
+    
+    # 2. Retrieve Username and Password for basic auth login
+    local TOPO_REST_USR=$(kubectl get secret aiops-topology-asm-credentials -n "$${AIOPS_NAMESPACE}" -o jsonpath='{.data.username}' | base64 --decode)
+    local TOPO_REST_PWD=$(kubectl get secret aiops-topology-asm-credentials -n "$${AIOPS_NAMESPACE}" -o jsonpath='{.data.password}' | base64 --decode)
+    local LOGIN="$${TOPO_REST_USR}:$${TOPO_REST_PWD}"
+    
+    # 3. Setup Port Forwarding
+    echo "Setting up port-forward from localhost:$${LOCAL_PORT} to $${OBSERVER_SVC_NAME}:$${SVC_PORT}..."
+    
+    # Run port-forwarding in the background, bound to all interfaces
+    kubectl port-forward svc/"$${OBSERVER_SVC_NAME}" "$${LOCAL_PORT}":"$${SVC_PORT}" -n "$${AIOPS_NAMESPACE}" > /dev/null 2>&1 &
+    local PF_PID=$!
+    
+    # Ensure the background process is killed when the function exits
+    trap "kill $${PF_PID}" EXIT
+
+    echo "Waiting 5 seconds for port-forward tunnel to stabilize..."
+    sleep 5
+    
+    # --- 4. Define the JSON Payload ---
+    JSON_PAYLOAD=$(cat <<EOF
+{
+  "unique_id": "vcenter",
+  "type": "string",
+  "description": "Load vCenter topology",
+  "parameters": {
+    "data_center": "$${DATA_CENTER}",
+    "api_url": "$${VC_API_URL}",
+    "username": "$${ADMIN_USER}",
+    "password": {
+      "hiddenString": "$${VC_PASSWORD}",
+      "encrypted": false
+    },
+    "trust_certificate": true
+  },
+  "schedule": {
+    "interval": 0,
+    "units": "Days",
+    "nextRunTime": 0
+  },
+  "write_file_observer_file": false,
+  "scheduleRequest": true
+}
+EOF
+)
+
+    # --- 5. Execute the curl command ---
+    echo "Executing API call to load VCenter Observer job..."
+    
+    # Note the service path uses 'vmvcenter-observer'
+    curl_output=$(curl -s -k \
+        -X POST "https://localhost:$${LOCAL_PORT}/1.0/vmvcenter-observer/jobs/restapi" \
+        --header "X-TenantID: $${TENANT_ID}" \
+        --header 'Accept: application/json' \
+        -u "$${LOGIN}" \
+        --header 'Content-Type: application/json' \
+        -d "$${JSON_PAYLOAD}")
+
+    local curl_exit_code=$?
+
+    # --- 6. Clean up and Report ---
+    kill $${PF_PID} || true 
+    
+    if [ "$curl_exit_code" -eq 0 ]; then
+        echo "VCenter API Call Successful. Response:"
+        echo "$${curl_output}" | jq . 2>/dev/null || echo "$${curl_output}"
+        return 0
+    else
+        echo "VCenter API Call Failed. Curl Exit Code: $${curl_exit_code}" >&2
+        echo "Raw Response: $${curl_output}" >&2
+        return 1
+    fi
+}

@@ -14,7 +14,9 @@ fi
 # Remove k3s- entries from known_hosts
 sed -i "/^${common_prefix}-k3s-/d" ~/.ssh/known_hosts
 
-# SSH into the server and run the command
-ssh -T -q -i ./modules/aiops-vmware/id_rsa -o StrictHostKeyChecking=false "clouduser@${common_prefix}-k3s-server-0.${base_domain}" << 'EOF'
-sudo /usr/local/bin/aiopsctl server info --show-secrets
-EOF
+# in single quotes to protect the inner double-quotes and JSON path.
+TOKEN_DATA=$(ssh -T -q -i ./modules/aiops-vmware/id_rsa -o StrictHostKeyChecking=false "clouduser@${common_prefix}-k3s-server-0.${base_domain}" 'sudo /usr/local/bin/kubectl get secret asm-k8s-account-legacy-token -n default -o jsonpath="{.data.token}"')
+FINAL_TOKEN=$(echo $TOKEN_DATA | base64 --decode)
+
+# You can now use the clean token directly:
+echo "Token: $FINAL_TOKEN"

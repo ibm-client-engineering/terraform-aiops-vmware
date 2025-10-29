@@ -15,6 +15,6 @@ fi
 sed -i "/^${common_prefix}-k3s-/d" ~/.ssh/known_hosts
 
 # SSH into the server and run the command
-ssh -i ./modules/aiops-vmware/id_rsa -o StrictHostKeyChecking=false "clouduser@${common_prefix}-k3s-server-0.${base_domain}" << 'EOF'
+ssh -T -q -i ./modules/aiops-vmware/id_rsa -o StrictHostKeyChecking=false "clouduser@${common_prefix}-k3s-server-0.${base_domain}" << 'EOF'
 sudo /usr/local/bin/aiopsctl status
 EOF

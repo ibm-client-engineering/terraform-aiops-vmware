@@ -1,0 +1,18 @@
+#cloud-config
+
+# --- 1. EXECUTION (runcmd runs as root by default) ---
+runcmd:
+  # Create the target directory
+  - mkdir -p /var/tmp/k3s-setup
+  # Ensure the script is executable
+  - chmod +x /var/tmp/k3s-setup/k3s-install-agent.sh
+  # Execute the single script file
+  - /var/tmp/k3s-setup/k3s-install-agent.sh
+
+# --- 2. WRITE FILE TO DISK ---
+write_files:
+  - path: /var/tmp/k3s-setup/k3s-install-agent.sh
+    owner: root:root
+    permissions: '0755'
+    content: |
+      ${install_script}

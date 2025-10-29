@@ -12,9 +12,7 @@ if [ -z "$base_domain" ]; then
 fi
 
 # Remove k3s- entries from known_hosts
-sed -i "/^${common_prefix}-k3s-/d" ~/.ssh/known_hosts
+sed -i "/^${common_prefix}-k3s-server-0/d" ~/.ssh/known_hosts
 
-# SSH into the server and run the command
-ssh -T -q -i ./modules/aiops-vmware/id_rsa -o StrictHostKeyChecking=false "clouduser@${common_prefix}-k3s-server-0.${base_domain}" << 'EOF'
-sudo /usr/local/bin/aiopsctl server info --show-secrets
-EOF
+# SSH into the server
+ssh -q -i ./modules/aiops-vmware/id_rsa -o StrictHostKeyChecking=false "clouduser@${common_prefix}-k3s-server-0.${base_domain}"

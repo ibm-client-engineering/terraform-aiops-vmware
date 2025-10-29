@@ -1,4 +1,24 @@
 
+locals {
+  install_agent_content = templatefile("${path.module}/cloudinit/k3s-install-agent.sh.tftpl", {
+    k3s_token                      = random_password.k3s_token.result,
+    k3s_url                        = "${var.common_prefix}-haproxy.${var.base_domain}",
+    accept_license                 = var.accept_license,
+    ibm_entitlement_key            = var.ibm_entitlement_key,
+    aiops_version                  = var.aiops_version,
+    ignore_prereqs                 = var.ignore_prereqs ? true : false,
+    use_private_registry           = var.use_private_registry ? true : false,
+    private_registry               = local.private_registry,
+    private_registry_user          = var.private_registry_user,
+    private_registry_user_password = var.private_registry_user_password,
+    private_registry_skip_tls      = var.private_registry_skip_tls ? "true" : "false",
+    rhsm_username                  = var.rhsm_username,
+    rhsm_password                  = var.rhsm_password,
+    mode                           = var.mode,
+    common_prefix                  = var.common_prefix
+  })
+}
+
 data "cloudinit_config" "k3s_agent_userdata" {
   count = var.k3s_agent_count
 
@@ -18,25 +38,15 @@ data "cloudinit_config" "k3s_agent_userdata" {
   }
 
   part {
-    content_type = "text/x-shellscript"
-    content = templatefile("${path.module}/cloudinit/k3s-install-agent.sh", {
-      k3s_token                      = random_password.k3s_token.result,
-      k3s_url                        = "${var.common_prefix}-haproxy.${var.base_domain}",
-      accept_license                 = var.accept_license,
-      ibm_entitlement_key            = var.ibm_entitlement_key,
-      aiops_version                  = var.aiops_version,
-      ignore_prereqs                 = var.ignore_prereqs ? true : false,
-      use_private_registry           = var.use_private_registry ? true : false,
-      private_registry               = local.private_registry,
-      private_registry_user          = var.private_registry_user,
-      private_registry_user_password = var.private_registry_user_password,
-      private_registry_skip_tls      = var.private_registry_skip_tls ? "true" : "false",
-      rhsm_username                  = var.rhsm_username,
-      rhsm_password                  = var.rhsm_password,
-      mode                           = var.mode,
-      common_prefix                  = var.common_prefix
+    filename     = "k3s-install-agent.yaml"
+    content_type = "text/cloud-config"
+    
+    # Pass the resulting script content to the simplified YAML template.
+    content = templatefile("${path.module}/cloudinit/k3s-install-agent.yaml.tftpl", {
+      install_script = indent(6, local.install_agent_content)
     })
   }
+
 }
 
 
@@ -59,14 +69,10 @@ resource "vsphere_virtual_machine" "k3s_agent" {
 
   folder = var.vsphere_folder
 
-  num_cpus  = local.num_cpus
-  memory    = local.memory
+  num_cpus  = local.per_node_cpus
+  memory    = local.per_node_memory_gb
   guest_id  = data.vsphere_virtual_machine.template.guest_id
   scsi_type = data.vsphere_virtual_machine.template.scsi_type
-
-  # cdrom {
-  #   client_device = true
-  # }
 
   network_interface {
     network_id = data.vsphere_network.this.id
@@ -103,6 +109,47 @@ resource "vsphere_virtual_machine" "k3s_agent" {
 
   clone {
     template_uuid = data.vsphere_virtual_machine.template.id
+  }
+
+  # Copy the ethtool fix script
+  provisioner "file" {
+
+    connection {
+      type        = "ssh"
+      user        = "clouduser"
+      private_key = tls_private_key.deployer.private_key_pem
+      host        = self.default_ip_address
+    }
+
+    source      = "${path.module}/cloudinit/flannel-ethtool-fix.sh"
+    destination = "/tmp/flannel-ethtool-fix.sh"
+  }
+
+  # Make the script executable and set ownership to root
+  provisioner "remote-exec" {
+
+    connection {
+      type        = "ssh"
+      user        = "clouduser"
+      private_key = tls_private_key.deployer.private_key_pem
+      host        = self.default_ip_address
+    }
+
+    inline = [
+      "sudo mv /tmp/flannel-ethtool-fix.sh /usr/local/bin/flannel-ethtool-fix.sh",
+      "sudo chmod +x /usr/local/bin/flannel-ethtool-fix.sh",
+      "sudo chown root:root /usr/local/bin/flannel-ethtool-fix.sh",
+    ]
+  }
+
+  lifecycle {
+    # Terraform will ignore any changes to the 'memory' and 'num_cpus' attributes
+    # after the resource has been created.
+    ignore_changes = [
+      memory,
+      num_cpus,
+      extra_config
+    ]
   }
 
   extra_config = {

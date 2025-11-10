@@ -155,7 +155,7 @@ spec:
           separator: ;
           regex: (.*)
           targetLabel: node_name
-          replacement: $1
+          replacement: \$1
           action: replace
 EOF
     if [ "$?" -ne 0 ]; then

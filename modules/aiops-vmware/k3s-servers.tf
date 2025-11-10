@@ -187,6 +187,20 @@ resource "vsphere_virtual_machine" "k3s_server" {
     destination = "/tmp/aiops.key.pem"
   }
 
+  # Copy utility script
+  provisioner "file" {
+
+    connection {
+      type        = "ssh"
+      user        = "clouduser"
+      private_key = tls_private_key.deployer.private_key_pem
+      host        = self.default_ip_address
+    }
+
+    source      = "${path.module}/util/trigger_disk_alert.sh"
+    destination = "/home/clouduser/trigger_disk_alert.sh"
+  }
+
   # Copy the ethtool fix script
   provisioner "file" {
 
@@ -226,6 +240,12 @@ resource "vsphere_virtual_machine" "k3s_server" {
       num_cpus,
       extra_config
     ]
+    precondition {
+      # CRITICAL CHECK: Ensure the vsphere_virtual_machine data source successfully 
+      # found the template by checking if a reliable attribute (like guest_id) is populated.
+      condition     = data.vsphere_virtual_machine.template.guest_id != null
+      error_message = "VSphere Template Validation Failed: The VM template '${var.template_name}' was not found in the specified Datacenter. Please verify the spelling and location of the template."
+    }    
   }
 
   extra_config = {

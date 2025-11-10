@@ -83,9 +83,19 @@ variable "k3s_agent_count" {
 }
 
 variable "install_k3s" {
-  default     = "true"
   type        = string
-  description = "Can be either 'true' or 'false'."
+  description = "Set to 'true' to install K3s. If set to 'true', 'accept_license' must also be 'true'."
+  default     = "true"
+
+  validation {
+    # Logic: 
+    # IF install_k3s is "true" (var.install_k3s == "true"), 
+    # THEN the condition must be that accept_license is "true" (var.accept_license == "true").
+    # ELSE (if install_k3s is not "true"), the condition is automatically true (true).
+    condition     = var.install_k3s == "true" ? var.accept_license == "true" : true
+
+    error_message = "Installation cannot proceed. If 'install_k3s' is set to \"true\", 'accept_license' must also be explicitly set to \"true\"."
+  }
 }
 
 variable "install_aiops" {

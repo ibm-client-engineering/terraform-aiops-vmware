@@ -37,7 +37,8 @@ k3s_agent_count = 6
 
 aiops_version = "4.10.1"
 
-ibm_entitlement_key = "1iOJ0eVJcIi9yJXJgILUeCzIhKJINiA3J9.eyJpc3MiOiJJQk0gTWFya2V0cGxhY2UiLCJpYXQiOjE3MTUxOTgxMzIsImp0aSI6IjlmOGE0ZGQwOTcyNDQ4YjQ4NTZjNmU5ZDI4NWRjY2YwIn0.7gXK1sYpUeFQwLxO3mO_RdtsYliPNCei8JwFukSMv"
+// IBM entitlement key from https://myibm.ibm.com/products-services/containerlibrary
+ibm_entitlement_key = ""
 
 accept_license      = "false"
 

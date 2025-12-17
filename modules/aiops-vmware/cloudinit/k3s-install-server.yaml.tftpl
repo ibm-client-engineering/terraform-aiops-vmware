@@ -16,38 +16,13 @@ write_files:
     permissions: '0755'
     content: |
       ${install_script}
-  - path: /var/tmp/k3s-setup/init/01_k8s_observer.sh
+# --- Dynamic Modular Scripts ---
+  # This loop automatically generates a write_files entry 
+  # for every script found in your init_common and init_server directories.
+%{ for script in modular_scripts ~}
+  - path: ${script.path}
     owner: root:root
     permissions: '0755'
     content: |
-      ${k3s_observer_script}
-  - path: /var/tmp/k3s-setup/init/02_vcenter_observer.sh
-    owner: root:root
-    permissions: '0755'
-    content: |
-      ${vcenter_observer_script}
-  - path: /var/tmp/k3s-setup/init/03_merge_rules.sh
-    owner: root:root
-    permissions: '0755'
-    content: |
-      ${merge_rules_script}
-  - path: /var/tmp/k3s-setup/init/04_k3s_registries.sh
-    owner: root:root
-    permissions: '0755'
-    content: |
-      ${k3s_registries_script}
-  - path: /var/tmp/k3s-setup/init/05_restart_k3s.sh
-    owner: root:root
-    permissions: '0755'
-    content: |
-      ${restart_k3s_script}
-  - path: /var/tmp/k3s-setup/init/06_prometheus_config.sh
-    owner: root:root
-    permissions: '0755'
-    content: |
-      ${prometheus_config_script}
-  - path: /var/tmp/k3s-setup/init/07_prometheus_rules.sh
-    owner: root:root
-    permissions: '0755'
-    content: |
-      ${prometheus_rules_script}
+      ${indent(6, script.content)}
+%{ endfor ~}

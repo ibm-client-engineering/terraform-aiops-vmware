@@ -1,0 +1,110 @@
+#!/bin/bash
+
+# This module installs Keycloak in a dedicated namespace, configures 
+# privileged security policies, generates self-signed TLS certificates, 
+# and sets up an Ingress resource.
+
+# FUNCTION: fn_install_keycloak
+fn_install_keycloak() {
+    local NAMESPACE="keycloak"
+    local KEYCLOAK_YAML_URL="https://raw.githubusercontent.com/keycloak/keycloak-quickstarts/refs/heads/main/kubernetes/keycloak.yaml"
+    local TEMP_YAML="/tmp/keycloak_quickstart.yaml"
+    # Hostname derived from your Ingress YAML
+    local HOSTNAME="keycloak.${k3s_url}"
+    local SECRET_NAME="keycloak-tls"
+    local TLS_KEY="/tmp/keycloak.key"
+    local TLS_CRT="/tmp/keycloak.crt"
+
+    echo "--- Starting Keycloak Installation ---"
+
+    # 1. Create the Keycloak namespace
+    echo "Creating namespace: $NAMESPACE"
+    kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+
+    # 2. Label the namespace for privileged execution (required for root containers)
+    echo "Labeling namespace for privileged Pod Security Standards..."
+    kubectl label namespace "$NAMESPACE" \
+        pod-security.kubernetes.io/enforce=privileged \
+        pod-security.kubernetes.io/audit=privileged \
+        pod-security.kubernetes.io/warn=privileged \
+        --overwrite
+
+    # 3. Download the Keycloak Quickstart YAML
+    echo "Downloading Keycloak manifest from $KEYCLOAK_YAML_URL..."
+    if curl -sL -o "$TEMP_YAML" "$KEYCLOAK_YAML_URL"; then
+        echo "Download successful."
+    else
+        echo "Error: Failed to download Keycloak YAML." >&2
+        return 1
+    fi
+
+    # 4. Replace image reference (quay.io -> k3s-quay-alias.io)
+    # This ensures we use the registry alias to avoid potential mirror conflicts
+    echo "Updating image registry reference to use k3s-quay-alias.io..."
+    sed -i 's|quay.io|k3s-quay-alias.io|g' "$TEMP_YAML"
+
+    # Apply the Keycloak deployment
+    echo "Applying Keycloak resources..."
+    if kubectl apply -n "$NAMESPACE" -f "$TEMP_YAML"; then
+        echo "Keycloak deployment applied successfully."
+    else
+        echo "Error: Failed to apply Keycloak deployment." >&2
+        return 1
+    fi
+
+    # 5. Generate Self-Signed Certificate
+    echo "Generating self-signed certificate for $HOSTNAME..."
+    # Using openssl to generate a certificate valid for 365 days
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout "$TLS_KEY" \
+        -out "$TLS_CRT" \
+        -subj "/CN=$HOSTNAME/O=Gym/C=US" 2>/dev/null
+
+    # 6. Create the Kubernetes TLS Secret
+    echo "Creating TLS secret '$SECRET_NAME' in namespace '$NAMESPACE'..."
+    kubectl create secret tls "$SECRET_NAME" \
+        --key "$TLS_KEY" \
+        --cert "$TLS_CRT" \
+        -n "$NAMESPACE" \
+        --dry-run=client -o yaml | kubectl apply -f -
+
+    # Clean up temp cert files
+    rm -f "$TLS_KEY" "$TLS_CRT" "$TEMP_YAML"
+
+    # 7. Apply the Ingress Resource
+    echo "Applying Keycloak Ingress resource..."
+    kubectl apply -f - <<EOF
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak
+  namespace: $NAMESPACE
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - $HOSTNAME
+    secretName: $SECRET_NAME
+  rules:
+  - host: $HOSTNAME
+    http:
+      paths:
+      - backend:
+          service:
+            name: keycloak
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix
+EOF
+
+    if [ "$?" -eq 0 ]; then
+        echo "Keycloak Ingress configured successfully."
+    else
+        echo "Error: Failed to apply Ingress resource." >&2
+        return 1
+    fi
+
+    echo "--- Keycloak Installation Complete ---"
+    return 0
+}

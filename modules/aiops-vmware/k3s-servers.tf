@@ -28,20 +28,21 @@ locals {
     haproxy_ip                     = var.haproxy_ip,
     run_observers                  = var.run_observers
   })
-  k8s_observer_script_content = templatefile("${path.module}/cloudinit/init_server/01_k8s_observer.sh.tftpl", {
-    k3s_url = "${var.common_prefix}-haproxy.${var.base_domain}"
-  })
-  vcenter_observer_script_content = templatefile("${path.module}/cloudinit/init_server/02_vcenter_observer.sh.tftpl", {
-    vsphere_hostname   = var.vsphere_hostname,
-    vsphere_username   = var.vsphere_username,
-    vsphere_password   = var.vsphere_password,
-    vsphere_datacenter = var.vsphere_datacenter
-  })
-  merge_rules_script_content       = templatefile("${path.module}/cloudinit/init_server/03_merge_rules.sh.tftpl", {})
-  prometheus_config_script_content = templatefile("${path.module}/cloudinit/init_server/04_prometheus_config.sh.tftpl", {})
-  prometheus_rules_script_content = templatefile("${path.module}/cloudinit/init_server/05_prometheus_rules.sh.tftpl", {})
-  k3s_registries_script_content    = templatefile("${path.module}/cloudinit/init_common/01_k3s_registries.sh.tftpl", {})
-  restart_k3s_script_content       = templatefile("${path.module}/cloudinit/init_common/02_restart_k3s.sh.tftpl", {})
+  # k8s_observer_script_content = templatefile("${path.module}/cloudinit/init_server/01_k8s_observer.sh.tftpl", {
+  #   k3s_url = "${var.common_prefix}-haproxy.${var.base_domain}"
+  # })
+  # vcenter_observer_script_content = templatefile("${path.module}/cloudinit/init_server/02_vcenter_observer.sh.tftpl", {
+  #   vsphere_hostname   = var.vsphere_hostname,
+  #   vsphere_username   = var.vsphere_username,
+  #   vsphere_password   = var.vsphere_password,
+  #   vsphere_datacenter = var.vsphere_datacenter
+  # })
+
+  #merge_rules_script_content       = templatefile("${path.module}/cloudinit/init_server/03_merge_rules.sh.tftpl", {})
+  #prometheus_config_script_content = templatefile("${path.module}/cloudinit/init_server/04_prometheus_config.sh.tftpl", {})
+  #prometheus_rules_script_content = templatefile("${path.module}/cloudinit/init_server/05_prometheus_rules.sh.tftpl", {})
+  #k3s_registries_script_content    = templatefile("${path.module}/cloudinit/init_common/01_k3s_registries.sh.tftpl", {})
+  #restart_k3s_script_content       = templatefile("${path.module}/cloudinit/init_common/02_restart_k3s.sh.tftpl", {})
 }
 
 data "cloudinit_config" "k3s_server_userdata" {
@@ -66,17 +67,25 @@ data "cloudinit_config" "k3s_server_userdata" {
     filename     = "k3s-install-server.yaml"
     content_type = "text/cloud-config"
 
-    # Pass the resulting script content to the simplified YAML template.
     content = templatefile("${path.module}/cloudinit/k3s-install-server.yaml.tftpl", {
-      install_script           = indent(6, local.install_script_content),
-      k3s_observer_script      = indent(6, local.k8s_observer_script_content),
-      vcenter_observer_script  = indent(6, local.vcenter_observer_script_content)
-      merge_rules_script       = indent(6, local.merge_rules_script_content),
-      prometheus_config_script = indent(6, local.prometheus_config_script_content),
-      k3s_registries_script    = indent(6, local.k3s_registries_script_content),
-      restart_k3s_script       = indent(6, local.restart_k3s_script_content),
-      prometheus_rules_script  = indent(6, local.prometheus_rules_script_content)
+      # Pass the dynamic list instead of individual strings
+      modular_scripts = concat(local.common_scripts_list, local.server_scripts_list)
+      
+      # Pass specific vars for the main orchestrator if needed
+      install_script = indent(6, local.install_script_content) 
     })
+
+    # Pass the resulting script content to the simplified YAML template.
+    # content = templatefile("${path.module}/cloudinit/k3s-install-server.yaml.tftpl", {
+    #   install_script           = indent(6, local.install_script_content),
+    #   k3s_observer_script      = indent(6, local.k8s_observer_script_content),
+    #   vcenter_observer_script  = indent(6, local.vcenter_observer_script_content)
+    #   merge_rules_script       = indent(6, local.merge_rules_script_content),
+    #   prometheus_config_script = indent(6, local.prometheus_config_script_content),
+    #   k3s_registries_script    = indent(6, local.k3s_registries_script_content),
+    #   restart_k3s_script       = indent(6, local.restart_k3s_script_content),
+    #   prometheus_rules_script  = indent(6, local.prometheus_rules_script_content)
+    # })
   }
 }
 

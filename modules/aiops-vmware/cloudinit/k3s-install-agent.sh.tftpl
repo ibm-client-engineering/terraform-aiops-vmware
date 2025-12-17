@@ -5,7 +5,7 @@ set -x
 # output in /var/log/cloud-init-output.log
 
 SETUP_DIR="$(dirname "$(readlink -f "$0")")"
-MODULES_DIR="$${SETUP_DIR}/init"
+MODULES_DIR="$${SETUP_DIR}/init_common"
 
 # --- Load all server module files ---
 # Modules are loaded in alphabetical/numeric order based on their filename.
@@ -235,8 +235,10 @@ fi
 disable_checksum_offload
 
 %{ if ! use_private_registry }
-# configure registries for prometheus node-exporter and restart k3s
-fn_configure_k3s_registries
+# create aliases for all the default rewrites so we can use those registries if needed
+fn_configure_k3s_registries "k3s-quay-alias.io" "https://quay.io"
+fn_configure_k3s_registries "k3s-docker-alias.io" "https://docker.io"
+fn_configure_k3s_registries "k3s-registry-k8s-alias.io" "https://registry.k8s.io"
 fn_restart_and_wait_for_k3s
 %{ endif }
 

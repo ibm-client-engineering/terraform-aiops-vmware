@@ -89,8 +89,8 @@ variable "install_k3s" {
 }
 
 variable "install_aiops" {
-  default     = "true"
-  type        = string
+  default     = true
+  type        = bool
   description = "Can be either 'true' or 'false'."
 }
 

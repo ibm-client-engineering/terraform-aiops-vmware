@@ -1,39 +1,51 @@
 #!/bin/bash
 
-# Uses yq to safely inject a specific, non-mirrored endpoint using a dummy alias 
-# to bypass the conflict with the general icr.io mirror rule for quay.io.
-
 # FUNCTION: fn_configure_k3s_registries
+# USAGE: fn_configure_k3s_registries <dummy_alias> <real_endpoint>
+# EXAMPLE: fn_configure_k3s_registries "k3s-node-exporter-alias.io" "https://quay.io"
 fn_configure_k3s_registries() {
-    # Install yq if not already present
-    echo "Installing yq..."
-    yum install -y yq || dnf install -y yq || { echo "ERROR: Failed to install yq."; exit 1; }
-    echo "yq installed."
+    local DUMMY_ALIAS="$1"
+    local REAL_ENDPOINT="$2"
+
+    # 1. Input Validation
+    if [[ -z "$DUMMY_ALIAS" || -z "$REAL_ENDPOINT" ]]; then
+        echo "ERROR: fn_configure_k3s_registries requires 2 arguments: <dummy_alias> and <real_endpoint>"
+        return 1
+    fi
 
     local REGISTRIES_CONFIG_PATH="/etc/rancher/k3s/registries.yaml"
     local TEMP_FILE="/tmp/registries.yaml.tmp"
 
-    # Define the dummy alias we will use in the DaemonSet image path
-    local DUMMY_ALIAS="k3s-node-exporter-alias.io"
-    # This is the actual endpoint it will pull from
-    local REAL_ENDPOINT="https://quay.io"
+    # Ensure yq is installed
+    if ! command -v yq &> /dev/null; then
+        echo "Installing yq..."
+        yum install -y yq || dnf install -y yq || { echo "ERROR: Failed to install yq."; exit 1; }
+        echo "yq installed."
+    fi
 
-    echo "--- Modifying K3s Registry Mirrors using Dummy Alias for Node Exporter ---"
+    # Ensure the config file exists (creates empty yaml if missing)
+    if [ ! -f "$REGISTRIES_CONFIG_PATH" ]; then
+        echo "Creating new registries.yaml..."
+        mkdir -p "$(dirname "$REGISTRIES_CONFIG_PATH")"
+        echo "{}" > "$REGISTRIES_CONFIG_PATH"
+    fi
 
-    # 1. Check if the specific exception is already present
-    # We pass the variable using --arg and reference it as $alias in the yq expression.
-    if yq e --arg alias "$DUMMY_ALIAS" ".mirrors.[$alias]" "$REGISTRIES_CONFIG_PATH" 2>/dev/null; then
+    echo "--- Modifying K3s Registry Mirrors using Dummy Alias for $DUMMY_ALIAS ---"
+
+    # 2. Check if the specific exception is already present
+    # We use escaped double quotes so Bash injects the variable $DUMMY_ALIAS before yq runs.
+    if yq e ".mirrors.\"$DUMMY_ALIAS\"" "$REGISTRIES_CONFIG_PATH" 2>/dev/null | grep -q -v "null"; then
         echo "Dummy alias exception for $DUMMY_ALIAS is already present. Skipping modification."
         return 0
     fi
     
     echo "Inserting dummy mirror '$DUMMY_ALIAS' pointing to '$REAL_ENDPOINT'..."
 
-    # 2. Use yq to perform structural modifications using Bash interpolation:
+    # 3. Use yq to insert the new config
+    # We use double quotes (") for the command so Bash can substitute our variables.
+    # We must escape inner quotes (\") and the literal $1 for the rewrite rule (\$1).
     yq e "
-      # 1. Insert the new dummy mirror, referencing the interpolated DUMMY_ALIAS.
       .mirrors.\"$DUMMY_ALIAS\" = {
-        # 2. Reference the interpolated REAL_ENDPOINT.
         \"endpoint\": [\"$REAL_ENDPOINT\"],
         \"rewrite\": { \"(.*)\": \"\$1\" }
       } 
@@ -45,7 +57,7 @@ fn_configure_k3s_registries() {
     fi
     
     mv "$TEMP_FILE" "$REGISTRIES_CONFIG_PATH"
-    echo "Registry configuration updated successfully. A K3s restart is required."
+    echo "Registry configuration updated successfully for $DUMMY_ALIAS."
     
     return 0
 }

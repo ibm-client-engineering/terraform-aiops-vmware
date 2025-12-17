@@ -78,6 +78,35 @@ resource "terraform_data" "frozen_node_cpu" {
 locals {
   per_node_memory_gb = terraform_data.frozen_node_memory.output.per_node_memory_gb
   per_node_cpus      = terraform_data.frozen_node_cpu.output.per_node_cpus
+
+  # Variable Superset
+  script_vars = {
+    k3s_url = "${var.common_prefix}-haproxy.${var.base_domain}",
+    vsphere_hostname   = var.vsphere_hostname,
+    vsphere_username   = var.vsphere_username,
+    vsphere_password   = var.vsphere_password,
+    vsphere_datacenter = var.vsphere_datacenter
+  }
+  
+  # Generate the list for COMMON scripts (Server + Agent)
+  common_scripts_path = "${path.module}/cloudinit/init_common"
+  common_scripts_list = [
+    for file_name in fileset(local.common_scripts_path, "*.sh.tftpl") : {
+      # Target path on VM: /var/tmp/k3s-setup/init_common/<filename>
+      path    = "/var/tmp/k3s-setup/init_common/${trimsuffix(file_name, ".tftpl")}"
+      content = templatefile("${local.common_scripts_path}/${file_name}", {})
+    }
+  ]
+
+  # Generate the list for SERVER-ONLY scripts
+  server_scripts_path = "${path.module}/cloudinit/init_server"
+  server_scripts_list = [
+    for file_name in fileset(local.server_scripts_path, "*.sh.tftpl") : {
+      # Target path on VM: /var/tmp/k3s-setup/init_server/<filename>
+      path    = "/var/tmp/k3s-setup/init_server/${trimsuffix(file_name, ".tftpl")}"
+      content = templatefile("${local.server_scripts_path}/${file_name}", local.script_vars)
+    }
+  ]
 }
 
 

@@ -5,13 +5,22 @@ set -x
 # output in /var/log/cloud-init-output.log
 
 install_k3s=${install_k3s}
-install_aiops=${install_aiops}
+install_aiops="${install_aiops}"
 num_nodes=${num_nodes}
 
 SETUP_DIR="$(dirname "$(readlink -f "$0")")"
-MODULES_DIR="$${SETUP_DIR}/init"
+MODULES_DIR="$${SETUP_DIR}/init_server"
 
 # --- Load all server module files ---
+# Modules are loaded in alphabetical/numeric order based on their filename.
+for module in "$${MODULES_DIR}"/*.sh; do
+    echo "Sourcing module: $${module}"
+    source "$${module}"
+done
+
+MODULES_DIR="$${SETUP_DIR}/init_common"
+
+# --- Load all common module files ---
 # Modules are loaded in alphabetical/numeric order based on their filename.
 for module in "$${MODULES_DIR}"/*.sh; do
     echo "Sourcing module: $${module}"
@@ -128,6 +137,39 @@ EOF
 
 chmod 750 /etc/rancher/k3s/config.yaml.d/audit.yaml
 
+}
+
+# This function accepts any command + arguments passed to it.
+run_aiops_safely() {
+    local LOG_FILE=$(mktemp)
+    
+    # 1. Run the command passed as arguments ("$@")
+    # We use pipestatus to capture the exit code of the aiopsctl command, not tee
+    "$@" 2>&1 | tee "$LOG_FILE"
+    local exit_code=$PIPESTATUS[0]
+
+    # 2. Check for the specific cross-device error
+    if grep -q "invalid cross-device link" "$LOG_FILE"; then
+        echo ""
+        echo "⚠️  Cross-device link error detected during installation."
+        echo "🩹  Applying fix: Manually copying 'oc' binary to /usr/local/bin..."
+        
+        # Apply the fix
+        if [ -f "/root/.aiopsctl/oc" ]; then
+            cp -f /root/.aiopsctl/oc /usr/local/bin/oc
+            chmod +x /usr/local/bin/oc
+            echo "✅  Fix applied"
+            echo "-----------------------------------"
+            exit_code=0
+        else
+            echo "❌  Could not find /root/.aiopsctl/oc to copy."
+            exit 1
+        fi
+    fi
+
+    # Clean up and return the final status
+    rm "$LOG_FILE"
+    return $exit_code
 }
 
 sleep 5
@@ -297,7 +339,8 @@ if [[ "$first_instance" == "$instance_id" ]]; then
   echo "Happy, happy, joy, joy: Cluster init!"
 
   if [[ "$install_k3s" == "true" ]]; then
-    aiopsctl cluster node up $INSTALL_PARAMS
+    echo "Running primary node install..."
+    run_aiops_safely aiopsctl cluster node up $INSTALL_PARAMS
   else
     echo "Skipping install."
     exit 0
@@ -364,6 +407,16 @@ EOF
   # additional sleep to make sure all nodes are up
   sleep 10
 
+%{ if ! use_private_registry }
+  # create aliases for all the default rewrites so we can use those registries if needed
+  fn_configure_k3s_registries "k3s-quay-alias.io" "https://quay.io"
+  fn_configure_k3s_registries "k3s-docker-alias.io" "https://docker.io"
+  fn_configure_k3s_registries "k3s-registry-k8s-alias.io" "https://registry.k8s.io"
+  fn_restart_and_wait_for_k3s
+  # install keycloak (currently only works during public install)
+  fn_install_keycloak
+%{ endif }
+
   # install aiops
   if [[ "$install_aiops" == "true" ]]; then
 
@@ -405,7 +458,7 @@ EOF
     rm -fr ~/.aiopsctl/
   fi
 
-  %{ if run_observers }
+  %{ if run_observers && install_aiops }
 
   # need entity types defined
   fn_create_topology_merge_rules
@@ -432,14 +485,15 @@ EOF
   # Configure Prometheus
   NODE_EXPORTER_IMAGE="quay.io/prometheus/node-exporter:v1.10.1"
 %{ if ! use_private_registry }
-  fn_configure_k3s_registries
-  fn_restart_and_wait_for_k3s
-  NODE_EXPORTER_IMAGE="k3s-node-exporter-alias.io/prometheus/node-exporter:v1.10.1"
+  NODE_EXPORTER_IMAGE="k3s-quay-alias.io/prometheus/node-exporter:v1.10.1"
 %{ endif }
+
+%{ if install_aiops }
   fn_configure_prometheus_and_node_exporter "$NODE_EXPORTER_IMAGE"
 
   # create rules
   fn_deploy_aiops_storage_rules
+%{ endif }
 
 else
   echo ":( Cluster join"
@@ -452,7 +506,8 @@ else
 
   wait_lb
   sleep 5
-  aiopsctl cluster node up --server-url="https://$first_instance:6443" $INSTALL_PARAMS
+  echo "Running secondary node install (joining $first_instance)..."
+  run_aiops_safely aiopsctl cluster node up --server-url="https://$first_instance:6443" $INSTALL_PARAMS
 
   # Check if SELinux is enforcing
   if [ "$(getenforce)" == "Enforcing" ]; then
@@ -468,7 +523,9 @@ else
   #k3s_audit_config
 
 %{ if ! use_private_registry }
-  fn_configure_k3s_registries
+  fn_configure_k3s_registries "k3s-quay-alias.io" "https://quay.io"
+  fn_configure_k3s_registries "k3s-docker-alias.io" "https://docker.io"
+  fn_configure_k3s_registries "k3s-registry-k8s-alias.io" "https://registry.k8s.io"
   fn_restart_and_wait_for_k3s
 %{ endif }
 

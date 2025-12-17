@@ -41,12 +41,20 @@ data "cloudinit_config" "k3s_agent_userdata" {
     filename     = "k3s-install-agent.yaml"
     content_type = "text/cloud-config"
 
-    # Pass the resulting script content to the simplified YAML template.
     content = templatefile("${path.module}/cloudinit/k3s-install-agent.yaml.tftpl", {
-      install_script        = indent(6, local.install_agent_content),
-      k3s_registries_script = indent(6, local.k3s_registries_script_content),
-      restart_k3s_script    = indent(6, local.restart_k3s_script_content)
+      # AGENTS: Only receive the common scripts
+      modular_scripts = local.common_scripts_list
+      
+      # Pass the agent-specific install script content
+      install_script  = indent(6, local.install_agent_content)
     })
+
+    # Pass the resulting script content to the simplified YAML template.
+    # content = templatefile("${path.module}/cloudinit/k3s-install-agent.yaml.tftpl", {
+    #   install_script        = indent(6, local.install_agent_content),
+    #   k3s_registries_script = indent(6, local.k3s_registries_script_content),
+    #   restart_k3s_script    = indent(6, local.restart_k3s_script_content)
+    # })
   }
 
 }
